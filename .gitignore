@@ -31,7 +31,6 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-.env*
 !.env.example
 
 # Firebase service account keys (never commit these!)
@@ -45,3 +44,4 @@ firebase-service-account.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+config.bat
