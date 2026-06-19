@@ -74,7 +74,7 @@ export async function GET(
     const row = data as any;
 
     const store = {
-      id: row.store_id?.toString() || row.id?.toString(),
+      id: row.id?.toString(),
       storeId: row.store_id ? (typeof row.store_id === 'number' ? row.store_id : parseInt(row.store_id, 10)) : undefined,
       name: row.store_name || row.name || '',
       subStoreName: row.subStoreName || row.sub_store_name || undefined,
@@ -226,7 +226,7 @@ export async function PATCH(
     // Reformat output the same as GET
     const row = data as any;
     const store = {
-      id: row.store_id?.toString() || row.id?.toString(),
+      id: row.id?.toString(),
       storeId: row.store_id ? (typeof row.store_id === 'number' ? row.store_id : parseInt(row.store_id, 10)) : undefined,
       name: row.store_name || row.name || '',
       subStoreName: row.subStoreName || row.sub_store_name || undefined,

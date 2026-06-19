@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "migrate:schema": "node scripts/apply-schema.mjs",
+    "migrate:data": "node scripts/migrate-supabase.mjs",
+    "migrate:check": "node scripts/migrate-supabase.mjs --check"
   },
   "dependencies": {
     "@emailjs/browser": "^4.4.1",
@@ -34,6 +37,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.0.3",
+    "pg": "^8.21.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

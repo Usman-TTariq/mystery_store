@@ -35,7 +35,7 @@ export async function GET() {
     const rows = (data || []) as any[];
 
     const stores = rows.map((row) => ({
-      id: row.store_id?.toString() || row.id?.toString(),
+      id: row.id?.toString(),
       storeId: row.store_id ? (typeof row.store_id === 'number' ? row.store_id : parseInt(row.store_id, 10)) : undefined,
       name: row.store_name || row.name || '',
       subStoreName: row.subStoreName || row.sub_store_name || undefined,
@@ -47,6 +47,7 @@ export async function GET() {
       isTrending: row.isTrending ?? row.featured ?? false,
       layoutPosition: row.layout_position || null,
       categoryId: row.category_id || null,
+      couponOrder: row.coupon_order || null,
       merchantId: row.merchant_id || undefined,
       networkId: row.network_id || undefined,
       trackingLink: row.tracking_link || undefined,

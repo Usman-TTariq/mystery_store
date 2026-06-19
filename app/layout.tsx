@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Barlow } from "next/font/google";
+import { siteConfig } from '@/lib/seo/config';
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,8 +20,29 @@ const barlow = Barlow({
 });
 
 export const metadata: Metadata = {
-  title: "COUPACHU",
-  description: "Manage coupons and discounts with Firebase backend",
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: `${siteConfig.name} – Best Coupons, Promo Codes & Cashback Deals`,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: siteConfig.description,
+  openGraph: {
+    type: 'website',
+    siteName: siteConfig.name,
+    title: `${siteConfig.name} – Best Coupons, Promo Codes & Cashback Deals`,
+    description: siteConfig.description,
+    url: siteConfig.url,
+    images: [{ url: siteConfig.ogImage, width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${siteConfig.name} – Best Coupons, Promo Codes & Cashback Deals`,
+    description: siteConfig.description,
+    images: [siteConfig.ogImage],
+  },
+  alternates: {
+    canonical: siteConfig.url,
+  },
   icons: {
     icon: [
       {

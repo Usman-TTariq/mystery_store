@@ -20,6 +20,7 @@ export interface Store {
   isTrending?: boolean
   layoutPosition?: number | null
   categoryId?: string | null
+  couponOrder?: string[] | null
   createdAt?: string
 }
 
@@ -56,6 +57,7 @@ export async function getStores(): Promise<Store[]> {
       isTrending: item.isTrending ?? item.featured,
       layoutPosition: item.layout_position,
       categoryId: item.category_id,
+      couponOrder: item.coupon_order || null,
       createdAt: item.created_at,
     }))
   } catch (error) {
@@ -183,6 +185,7 @@ export async function getStoreById(id: string): Promise<Store | null> {
       isTrending: data.isTrending ?? data.featured,
       layoutPosition: data.layout_position,
       categoryId: data.category_id,
+      couponOrder: data.coupon_order || null,
       createdAt: data.created_at,
     }
   } catch (error) {
@@ -219,6 +222,7 @@ export async function getStoreBySlug(slug: string): Promise<Store | null> {
       isTrending: data.isTrending ?? data.featured,
       layoutPosition: data.layout_position,
       categoryId: data.category_id,
+      couponOrder: data.coupon_order || null,
       createdAt: data.created_at,
     }
   } catch (error) {
@@ -271,6 +275,7 @@ export async function updateStore(id: string, updates: Partial<Store>) {
     if (updates.merchantId !== undefined) updateData.merchant_id = updates.merchantId
     if (updates.networkId !== undefined) updateData.network_id = updates.networkId
     if (updates.trackingLink !== undefined) updateData.tracking_link = updates.trackingLink
+    if (updates.couponOrder !== undefined) updateData.coupon_order = updates.couponOrder
 
     const { error } = await supabase
       .from('stores')
@@ -337,6 +342,7 @@ export async function getStoresByCategoryId(categoryId: string): Promise<Store[]
       isTrending: item.isTrending ?? item.featured,
       layoutPosition: item.layout_position,
       categoryId: item.category_id,
+      couponOrder: item.coupon_order || null,
       createdAt: item.created_at,
     }))
   } catch (error) {

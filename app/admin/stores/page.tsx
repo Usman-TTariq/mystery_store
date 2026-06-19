@@ -12,6 +12,8 @@ import {
 } from '@/lib/services/storeService';
 import { getCategories, Category } from '@/lib/services/categoryService';
 import { extractOriginalCloudinaryUrl, isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import StoreCouponsPriorityModal from './StoreCouponsPriorityModal';
+import { createClient } from '@/lib/supabase/client';
 
 export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -48,6 +50,10 @@ export default function StoresPage() {
   const [uploadingBulkStores, setUploadingBulkStores] = useState(false);
   const [supabaseStores, setSupabaseStores] = useState<Store[]>([]);
   const [categoriesMap, setCategoriesMap] = useState<Map<string, string>>(new Map());
+  const [priorityStore, setPriorityStore] = useState<Store | null>(null);
+  const [couponStatsByStore, setCouponStatsByStore] = useState<
+    Record<string, { total: number; active: number; inactive: number }>
+  >({});
   // Only use Supabase stores to avoid duplicate numbering
   let newStores = supabaseStores;
   console.log("newStores: ", newStores);
@@ -457,6 +463,33 @@ export default function StoresPage() {
       setSupabaseStores(supabaseList);
       setStores(storesData);
       setCategories(categoriesData);
+
+      try {
+        const supabase = createClient();
+        const { data: couponRows } = await supabase
+          .from('coupons')
+          .select('id, status, store_id, store_ids');
+
+        const stats: Record<string, { total: number; active: number; inactive: number }> = {};
+        for (const row of couponRows || []) {
+          const isActive = row.status === 'active';
+          const storeIds = new Set<string>();
+          if (row.store_id) storeIds.add(String(row.store_id));
+          for (const sid of row.store_ids || []) {
+            if (sid) storeIds.add(String(sid));
+          }
+          for (const storeId of storeIds) {
+            if (!stats[storeId]) stats[storeId] = { total: 0, active: 0, inactive: 0 };
+            stats[storeId].total += 1;
+            if (isActive) stats[storeId].active += 1;
+            else stats[storeId].inactive += 1;
+          }
+        }
+        setCouponStatsByStore(stats);
+      } catch (couponStatsError) {
+        console.error('Error loading coupon stats:', couponStatsError);
+      }
+
       setLoading(false);
     };
     load();
@@ -1451,6 +1484,9 @@ export default function StoresPage() {
                     Slug
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
+                    Coupons
+                  </th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                     Merchant ID
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
@@ -1538,6 +1574,25 @@ export default function StoresPage() {
                     <td className="px-6 py-4 text-sm text-gray-700 font-mono">
                       {store.slug || '-'}
                     </td>
+                    <td className="px-6 py-4 text-sm">
+                      {store.id && couponStatsByStore[store.id] ? (
+                        <div className="leading-relaxed">
+                          <span className="text-blue-600">
+                            Total: {couponStatsByStore[store.id].total}
+                          </span>
+                          <br />
+                          <span className="text-green-600">
+                            Active: {couponStatsByStore[store.id].active}
+                          </span>
+                          <br />
+                          <span className="text-red-600">
+                            Inactive: {couponStatsByStore[store.id].inactive}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400">—</span>
+                      )}
+                    </td>
                     <td className="px-6 py-4 text-sm text-gray-900">
                       {store.merchantId || '-'}
                     </td>
@@ -1574,19 +1629,28 @@ export default function StoresPage() {
                       </button>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        <Link
-                          href={`/admin/stores/${store.id}`}
-                          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                        >
-                          Edit
-                        </Link>
+                      <div className="flex flex-col gap-2">
                         <button
-                          onClick={() => handleDelete(store.id)}
-                          className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
+                          type="button"
+                          onClick={() => setPriorityStore(store)}
+                          className="px-3 py-1.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 whitespace-nowrap"
                         >
-                          Delete
+                          View coupons
                         </button>
+                        <div className="flex gap-2">
+                          <Link
+                            href={`/admin/stores/${store.id}`}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            Edit
+                          </Link>
+                          <button
+                            onClick={() => handleDelete(store.id)}
+                            className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -1595,6 +1659,12 @@ export default function StoresPage() {
             </table>
           </div>
         </div>
+      )}
+      {priorityStore && (
+        <StoreCouponsPriorityModal
+          store={priorityStore}
+          onClose={() => setPriorityStore(null)}
+        />
       )}
     </div>
   );

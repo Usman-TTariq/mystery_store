@@ -1,6 +1,6 @@
 import { supabaseServer } from '@/lib/supabase/server';
 
-interface SupabaseStoreRow {
+interface IncomingStoreRow {
   name: string;
   description: string;
   logo_url?: string | null;
@@ -15,12 +15,34 @@ interface SupabaseStoreRow {
   seo_description?: string | null;
   slug?: string | null;
   sub_store_name?: string | null;
+  category_id?: string | null;
+}
+
+function mapStoreRow(row: IncomingStoreRow) {
+  return {
+    store_name: row.name,
+    description: row.description,
+    store_logo_url: row.logo_url ?? null,
+    website_url: row.website_url ?? null,
+    tracking_link: row.tracking_link ?? null,
+    merchant_id: row.merchant_id ?? null,
+    network_id: row.network_id ?? null,
+    country: row.country ?? null,
+    status: row.status ?? null,
+    seoTitle: row.seo_title ?? null,
+    seoDescription: row.seo_description ?? null,
+    subStoreName: row.sub_store_name ?? null,
+    isTrending: row.featured ?? false,
+    slug: row.slug ?? null,
+    category_id: row.category_id ?? null,
+    updated_at: new Date().toISOString(),
+  };
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const rows = (body?.rows ?? []) as SupabaseStoreRow[];
+    const rows = (body?.rows ?? []) as IncomingStoreRow[];
 
     if (!Array.isArray(rows) || rows.length === 0) {
       return new Response(
@@ -30,14 +52,14 @@ export async function POST(req: Request) {
     }
 
     const supabase = supabaseServer();
+    const mappedRows = rows.map(mapStoreRow);
 
-    // Use upsert to handle duplicates - update if slug exists, insert if new
     const { error, count } = await supabase
       .from('stores')
-      .upsert(rows as SupabaseStoreRow[], {
+      .upsert(mappedRows, {
         onConflict: 'slug',
         count: 'exact',
-        ignoreDuplicates: false // Update existing records
+        ignoreDuplicates: false,
       });
 
     if (error) {
@@ -49,7 +71,13 @@ export async function POST(req: Request) {
     }
 
     return new Response(
-      JSON.stringify({ success: true, inserted: count ?? rows.length }),
+      JSON.stringify({
+        success: true,
+        inserted: count ?? mappedRows.length,
+        uploaded: count ?? mappedRows.length,
+        skipped: 0,
+        errors: [],
+      }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );
   } catch (error) {
@@ -63,5 +91,3 @@ export async function POST(req: Request) {
     );
   }
 }
-
-
