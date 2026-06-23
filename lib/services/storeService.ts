@@ -10,8 +10,6 @@ export interface Store {
   logoUrl?: string
   websiteUrl?: string
   trackingLink?: string
-  merchantId?: string
-  networkId?: string
   country?: string
   status?: string
   voucherText?: string
@@ -47,8 +45,6 @@ export async function getStores(): Promise<Store[]> {
       logoUrl: item.store_logo_url || item.logo_url,  // Support both old and new schema
       websiteUrl: item.website_url,
       trackingLink: item.tracking_link,
-      merchantId: item.merchant_id,
-      networkId: item.network_id,
       country: item.country,
       status: item.status,
       voucherText: item.voucher_text,
@@ -136,8 +132,6 @@ export async function createStore(store: Omit<Store, 'id'>) {
         store_logo_url: store.logoUrl,
         website_url: store.websiteUrl,
         tracking_link: store.trackingLink,
-        merchant_id: store.merchantId,
-        network_id: store.networkId,
         country: store.country || 'US',
         status: store.status || 'active',
         voucher_text: store.voucherText,
@@ -279,8 +273,6 @@ export async function updateStore(id: string, updates: Partial<Store>) {
     if (updates.isTrending !== undefined) updateData.isTrending = updates.isTrending
     if (updates.layoutPosition !== undefined) updateData.layout_position = updates.layoutPosition
     if (updates.categoryId !== undefined) updateData.category_id = updates.categoryId
-    if (updates.merchantId !== undefined) updateData.merchant_id = updates.merchantId
-    if (updates.networkId !== undefined) updateData.network_id = updates.networkId
     if (updates.trackingLink !== undefined) updateData.tracking_link = updates.trackingLink
     if (updates.websiteUrl !== undefined) updateData.website_url = updates.websiteUrl
     if (updates.country !== undefined) updateData.country = updates.country

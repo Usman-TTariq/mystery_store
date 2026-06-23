@@ -254,46 +254,48 @@ export async function getCouponById(id: string): Promise<Coupon | null> {
 
 export async function updateCoupon(id: string, updates: Partial<Coupon>) {
   try {
-    const supabase = createClient()
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
+    const payload: Record<string, unknown> = {};
+
+    if (updates.code !== undefined) payload.code = updates.code;
+    if (updates.storeName !== undefined) payload.storeName = updates.storeName;
+    if (updates.storeIds !== undefined) payload.storeIds = updates.storeIds;
+    if (updates.discount !== undefined) payload.discount = updates.discount;
+    if (updates.discountType !== undefined) payload.discountType = updates.discountType;
+    if (updates.description !== undefined) payload.description = updates.description;
+    if (updates.isActive !== undefined) payload.isActive = updates.isActive;
+    if (updates.maxUses !== undefined) payload.maxUses = updates.maxUses;
+    if (updates.currentUses !== undefined) payload.currentUses = updates.currentUses;
+    if (updates.expiryDate !== undefined) payload.expiryDate = updates.expiryDate;
+    if (updates.logoUrl !== undefined) payload.logoUrl = updates.logoUrl;
+    if (updates.url !== undefined) payload.url = updates.url;
+    if (updates.couponType !== undefined) payload.couponType = updates.couponType;
+    if (updates.getCodeText !== undefined) payload.getCodeText = updates.getCodeText;
+    if (updates.getDealText !== undefined) payload.getDealText = updates.getDealText;
+    if (updates.isPopular !== undefined) payload.isPopular = updates.isPopular;
+    if (updates.layoutPosition !== undefined) payload.layoutPosition = updates.layoutPosition;
+    if (updates.isLatest !== undefined) payload.isLatest = updates.isLatest;
+    if (updates.latestLayoutPosition !== undefined) {
+      payload.latestLayoutPosition = updates.latestLayoutPosition;
+    }
+    if (updates.categoryId !== undefined) payload.categoryId = updates.categoryId;
+
+    const res = await fetch(`/api/coupons/supabase/by-id/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok || !data.success) {
+      console.error('Error updating coupon:', data.error);
+      return { success: false, error: data.error };
     }
 
-    if (updates.code) updateData.code = updates.code
-    if (updates.storeName !== undefined) updateData.store_name = updates.storeName
-    if (updates.storeIds !== undefined) updateData.store_ids = updates.storeIds
-    if (updates.discount !== undefined) updateData.discount_value = updates.discount
-    if (updates.discountType) updateData.discount_type = updates.discountType
-    if (updates.description) updateData.description = updates.description
-    if (updates.isActive !== undefined) updateData.status = updates.isActive ? 'active' : 'inactive'
-    if (updates.maxUses !== undefined) updateData.max_uses = updates.maxUses
-    if (updates.currentUses !== undefined) updateData.current_uses = updates.currentUses
-    if (updates.expiryDate !== undefined) updateData.expiry_date = updates.expiryDate
-    if (updates.logoUrl !== undefined) updateData.logo_url = updates.logoUrl
-    if (updates.url !== undefined) updateData.url = updates.url
-    if (updates.couponType) updateData.coupon_type = updates.couponType
-    if (updates.getCodeText) updateData.get_code_text = updates.getCodeText
-    if (updates.getDealText) updateData.get_deal_text = updates.getDealText
-    if (updates.isPopular !== undefined) updateData.featured = updates.isPopular
-    if (updates.layoutPosition !== undefined) updateData.layout_position = updates.layoutPosition
-    if (updates.isLatest !== undefined) updateData.is_latest = updates.isLatest
-    if (updates.latestLayoutPosition !== undefined) updateData.latest_layout_position = updates.latestLayoutPosition
-    if (updates.categoryId !== undefined) updateData.category_id = updates.categoryId
-
-    const { error } = await supabase
-      .from('coupons')
-      .update(updateData)
-      .eq('id', id)
-
-    if (error) {
-      console.error('Error updating coupon:', error)
-      return { success: false, error }
-    }
-
-    return { success: true }
+    return { success: true };
   } catch (error) {
-    console.error('Error updating coupon:', error)
-    return { success: false, error }
+    console.error('Error updating coupon:', error);
+    return { success: false, error };
   }
 }
 

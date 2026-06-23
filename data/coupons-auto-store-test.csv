@@ -1,0 +1,8 @@
+store_id,Store Name,couponType,code,title,description,discount,discountType,expiryDate,getCodeText,getDealText,isActive,isLatest,isPopular,maxUses,url
+,Zephyr Outfits AU,code,AUTO-ZEPH-02,25% Off at Zephyr Outfits,Save 25% on fashion at Zephyr Outfits AU.,25,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.zephyroutfits.com.au
+,NovaCraft Store,code,AUTO-NOVA-02,15% Off NovaCraft,Verified promo code for NovaCraft Store.,15,percentage,2026-12-31,Get Code,,true,false,false,50,https://www.novacraftstore.com
+,PixelPeak Shop,deal,,Free Shipping Deal v2,Second deal at PixelPeak Shop.,0,percentage,2026-06-30,,Get Deal,true,false,false,75,https://www.pixelpeak.shop
+,Aurora Threads CA,code,AUTO-AUR-01,20% Off Aurora Threads,Save 20% on Canadian fashion at Aurora Threads.,20,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.aurorathreads.ca
+,MapleNest Home,code,AUTO-MAP-01,10% Off MapleNest Home,Home decor and furniture deals at MapleNest Home.,10,percentage,2026-11-30,Get Code,,true,false,false,80,https://www.maplenesthome.com
+,BoltRun Sports EU,deal,,BoltRun Flash Sale,Exclusive sports gear deal at BoltRun Sports EU.,0,percentage,2026-08-15,,Get Deal,true,false,false,60,https://www.boltrunsports.eu
+,CloudNine Luggage,code,AUTO-CLOUD-01,30% Off CloudNine Luggage,Save 30% on luggage and travel bags.,30,percentage,2026-12-31,Get Code,,true,true,false,120,https://www.cloudnineluggage.com

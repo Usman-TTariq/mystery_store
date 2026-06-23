@@ -31,8 +31,6 @@ export default function StoresPage() {
     isTrending: false,
     layoutPosition: null,
     categoryId: null,
-    merchantId: '',
-    networkId: '',
     trackingLink: '',
     country: 'US',
   });
@@ -54,9 +52,18 @@ export default function StoresPage() {
   const [couponStatsByStore, setCouponStatsByStore] = useState<
     Record<string, { total: number; active: number; inactive: number }>
   >({});
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const sortStoresByRecent = (list: Store[]): Store[] =>
+    [...list].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (bTime !== aTime) return bTime - aTime;
+      return (b.storeId ?? 0) - (a.storeId ?? 0);
+    });
+
   // Only use Supabase stores to avoid duplicate numbering
-  let newStores = supabaseStores;
-  console.log("newStores: ", newStores);
+  const newStores = sortStoresByRecent(supabaseStores);
 
   // Generate slug from name
   const generateSlug = (name: string): string => {
@@ -233,8 +240,6 @@ export default function StoresPage() {
     const idxLogoUrl = indexOf('logo url') !== -1 ? indexOf('logo url') : indexOf('store_logo_url');
     const idxStoreUrl = indexOf('store url') !== -1 ? indexOf('store url') : indexOf('website_url');
     const idxTrackingLink = indexOf('tracking link') !== -1 ? indexOf('tracking link') : indexOf('tracking_link');
-    const idxMerchantId = indexOf('merchant id') !== -1 ? indexOf('merchant id') : indexOf('merchant_id');
-    const idxNetworkId = indexOf('netwok id') !== -1 ? indexOf('netwok id') : indexOf('network id') !== -1 ? indexOf('network id') : indexOf('network_id');
     const idxCountry = indexOf('country');
     const idxStatus = indexOf('status');
     const idxSlug = indexOf('slug');
@@ -279,8 +284,6 @@ export default function StoresPage() {
           logo_url: logoUrl,
           website_url: idxStoreUrl !== -1 ? (row[idxStoreUrl] || null) : null,
           tracking_link: idxTrackingLink !== -1 ? (row[idxTrackingLink] || null) : null,
-          merchant_id: idxMerchantId !== -1 ? (row[idxMerchantId] || null) : null,
-          network_id: idxNetworkId !== -1 ? (row[idxNetworkId] || null) : null,
           category_text: idxCategory !== -1 ? (row[idxCategory] || null) : null,
           country: idxCountry !== -1 ? (row[idxCountry] || 'US') : 'US',
           status: idxStatus !== -1 ? (normalizeBoolean(row[idxStatus]) ? 'active' : 'inactive') : 'active',
@@ -297,8 +300,6 @@ export default function StoresPage() {
         logo_url?: string | null;
         website_url?: string | null;
         tracking_link?: string | null;
-        merchant_id?: string | null;
-        network_id?: string | null;
         country?: string;
         status?: string;
         featured?: boolean;
@@ -439,9 +440,24 @@ export default function StoresPage() {
 
   const fetchStores = async () => {
     setLoading(true);
-    const data = await getStores();
-    setStores(data);
-    setLoading(false);
+    try {
+      const [storesData, supabaseResponse] = await Promise.all([
+        getStores(),
+        fetch('/api/stores/supabase')
+          .then((res) => res.json())
+          .catch((err) => {
+            console.error('Error fetching Supabase stores:', err);
+            return { success: false, stores: [] };
+          }),
+      ]);
+      const supabaseList: Store[] = Array.isArray(supabaseResponse?.stores)
+        ? (supabaseResponse.stores as Store[])
+        : [];
+      setSupabaseStores(supabaseList);
+      setStores(storesData);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -557,8 +573,6 @@ export default function StoresPage() {
       isTrending: formData.isTrending || false,
       layoutPosition: layoutPositionToSave,
       categoryId: formData.categoryId || null,
-      merchantId: formData.merchantId || undefined,
-      networkId: formData.networkId || undefined,
       trackingLink: formData.trackingLink || undefined,
       country: formData.country || 'US',
     };
@@ -579,8 +593,6 @@ export default function StoresPage() {
         isTrending: false,
         layoutPosition: null,
         categoryId: null,
-        merchantId: '',
-        networkId: '',
         trackingLink: '',
         country: 'US',
       });
@@ -735,6 +747,18 @@ export default function StoresPage() {
     }
   };
 
+  const filteredStores = searchQuery.trim() === ''
+    ? newStores
+    : newStores.filter((store) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          store.name?.toLowerCase().includes(q) ||
+          store.slug?.toLowerCase().includes(q) ||
+          store.subStoreName?.toLowerCase().includes(q) ||
+          String(store.storeId ?? '').includes(q)
+        );
+      });
+
   return (
     <div>
       <div className="flex justify-between items-center mb-8">
@@ -762,6 +786,54 @@ export default function StoresPage() {
           >
             {showForm ? 'Cancel' : 'Create New Store'}
           </button>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+          <label htmlFor="searchStores" className="block text-sm font-semibold text-gray-700 mb-2">
+            Search by Store Name, Slug, or Store ID
+          </label>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 relative">
+              <input
+                id="searchStores"
+                type="text"
+                placeholder="Enter store name, slug, or ID..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+              <svg
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium whitespace-nowrap"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+          {searchQuery && (
+            <p className="mt-2 text-sm text-gray-600">
+              Showing <span className="font-semibold">{filteredStores.length}</span> of{' '}
+              <span className="font-semibold">{newStores.length}</span> stores
+            </p>
+          )}
         </div>
       </div>
 
@@ -979,78 +1051,41 @@ export default function StoresPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="merchantId" className="block text-gray-700 text-sm font-semibold mb-2">
-                  Merchant ID
+                <label htmlFor="country" className="block text-gray-700 text-sm font-semibold mb-2">
+                  Country
                 </label>
                 <input
-                  id="merchantId"
-                  name="merchantId"
+                  id="country"
+                  name="country"
                   type="text"
-                  placeholder="Merchant ID (e.g., 266908)"
-                  value={formData.merchantId || ''}
+                  placeholder="US, UK, DE..."
+                  value={formData.country || 'US'}
                   onChange={(e) =>
-                    setFormData({ ...formData, merchantId: e.target.value })
+                    setFormData({ ...formData, country: e.target.value.toUpperCase() })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  maxLength={2}
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  2-letter country code (e.g. US, UK, DE)
+                </p>
               </div>
               <div>
-                <label htmlFor="networkId" className="block text-gray-700 text-sm font-semibold mb-2">
-                  Network ID
+                <label htmlFor="trackingLink" className="block text-gray-700 text-sm font-semibold mb-2">
+                  Tracking Link (Affiliate URL)
                 </label>
                 <input
-                  id="networkId"
-                  name="networkId"
+                  id="trackingLink"
+                  name="trackingLink"
                   type="text"
-                  placeholder="Network ID (e.g., 2)"
-                  value={formData.networkId || ''}
+                  placeholder="https://example.com/track?id=123"
+                  value={formData.trackingLink || ''}
                   onChange={(e) =>
-                    setFormData({ ...formData, networkId: e.target.value })
+                    setFormData({ ...formData, trackingLink: e.target.value })
                   }
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
-            </div>
-
-            <div>
-              <label htmlFor="country" className="block text-gray-700 text-sm font-semibold mb-2">
-                Country
-              </label>
-              <input
-                id="country"
-                name="country"
-                type="text"
-                placeholder="Country (e.g., US, UK, DE)"
-                value={formData.country || 'US'}
-                onChange={(e) =>
-                  setFormData({ ...formData, country: e.target.value.toUpperCase() })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                maxLength={2}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                2-letter country code (e.g., US for United States, UK for United Kingdom, DE for Germany)
-              </p>
-            </div>
-
-            <div>
-              <label htmlFor="trackingLink" className="block text-gray-700 text-sm font-semibold mb-2">
-                Tracking Link (Affiliate URL)
-              </label>
-              <input
-                id="trackingLink"
-                name="trackingLink"
-                type="url"
-                placeholder="https://example.com/track?id=123"
-                value={formData.trackingLink || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, trackingLink: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Affiliate tracking URL for this store
-              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1272,7 +1307,9 @@ export default function StoresPage() {
             </div>
 
             <div>
-              <label htmlFor="description" className="sr-only">Description</label>
+              <label htmlFor="description" className="block text-gray-700 text-sm font-semibold mb-2">
+                Description
+              </label>
               <textarea
                 id="description"
                 name="description"
@@ -1444,6 +1481,17 @@ export default function StoresPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <p className="text-gray-500">No stores created yet</p>
         </div>
+      ) : filteredStores.length === 0 ? (
+        <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
+          <p className="text-gray-500">No stores found matching &quot;{searchQuery}&quot;</p>
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="mt-4 text-blue-600 hover:text-blue-800 underline"
+          >
+            Clear search
+          </button>
+        </div>
       ) : (
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
@@ -1469,12 +1517,6 @@ export default function StoresPage() {
                     Coupons
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Merchant ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
-                    Network ID
-                  </th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
                     Tracking Link
                   </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold text-gray-900">
@@ -1489,7 +1531,7 @@ export default function StoresPage() {
                 </tr>
               </thead>
               <tbody>
-                {newStores.map((store) => (
+                {filteredStores.map((store) => (
                   <tr key={store.id} className="border-b hover:bg-gray-50">
                     <td className="px-6 py-4">
                       {store.logoUrl ? (
@@ -1575,12 +1617,6 @@ export default function StoresPage() {
                         <span className="text-gray-400">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {store.merchantId || '-'}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {store.networkId || '-'}
-                    </td>
                     <td className="px-6 py-4 text-sm">
                       {store.trackingLink ? (
                         <a href={store.trackingLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline" title={store.trackingLink}>
@@ -1617,7 +1653,7 @@ export default function StoresPage() {
                           onClick={() => setPriorityStore(store)}
                           className="px-3 py-1.5 rounded text-xs font-semibold bg-indigo-100 text-indigo-700 hover:bg-indigo-200 whitespace-nowrap"
                         >
-                          View coupons
+                          Reorder coupons
                         </button>
                         <div className="flex flex-wrap gap-2">
                           <Link

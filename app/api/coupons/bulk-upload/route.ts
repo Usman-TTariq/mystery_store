@@ -1,5 +1,57 @@
 import { supabaseServer } from '@/lib/supabase/server';
 
+function slugify(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+}
+
+async function autoCreateStore(
+  supabase: ReturnType<typeof supabaseServer>,
+  storeName: string,
+  websiteUrl?: string | null,
+  logoUrl?: string | null,
+  existingSlugs?: Set<string>
+): Promise<{ id: string; slug: string } | null> {
+  const baseSlug = slugify(storeName);
+  if (!baseSlug) return null;
+
+  const slugSet = existingSlugs ?? new Set<string>();
+  let uniqueSlug = baseSlug;
+  let suffix = 2;
+
+  while (slugSet.has(uniqueSlug)) {
+    uniqueSlug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  const { data, error } = await supabase
+    .from('stores')
+    .insert({
+      store_name: storeName,
+      slug: uniqueSlug,
+      website_url: websiteUrl?.trim() || null,
+      store_logo_url: logoUrl?.trim() || null,
+      status: 'active',
+      country: 'US',
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .select('id')
+    .single();
+
+  if (error || !data?.id) {
+    console.error('autoCreateStore failed:', error);
+    return null;
+  }
+
+  slugSet.add(uniqueSlug);
+  return { id: String(data.id), slug: uniqueSlug };
+}
+
 interface IncomingCouponRow {
   store_id?: number | string | null;
   storeUuid?: string | null;
@@ -180,13 +232,53 @@ export async function POST(req: Request) {
     }
 
     const storesList = loadStoresFromDb(storeData || []);
+    const existingSlugs = new Set(
+      storesList.map((s) => s.slug).filter((s): s is string => Boolean(s))
+    );
+    const autoCreatedInBatch = new Map<string, { uuid: string; storeName: string }>();
     const mappedRows: ReturnType<typeof mapCouponRow>[] = [];
     const errors: string[] = [];
+    const storeNames: string[] = [];
     let skipped = 0;
+    let storesCreated = 0;
 
-    rows.forEach((row, index) => {
+    for (let index = 0; index < rows.length; index++) {
+      const row = rows[index];
       const rowNum = index + 1;
-      const resolved = resolveStore(row, storesList);
+      let resolved = resolveStore(row, storesList);
+
+      if (!resolved) {
+        const nameForCreate = row.storeName?.trim();
+        if (nameForCreate) {
+          const batchKey = normalizeStoreName(nameForCreate);
+          const cached = autoCreatedInBatch.get(batchKey);
+
+          if (cached) {
+            resolved = { uuid: cached.uuid, storeName: cached.storeName };
+          } else {
+            const created = await autoCreateStore(
+              supabase,
+              nameForCreate,
+              row.url,
+              row.logoUrl,
+              existingSlugs
+            );
+
+            if (created) {
+              resolved = { uuid: created.id, storeName: nameForCreate };
+              autoCreatedInBatch.set(batchKey, { uuid: created.id, storeName: nameForCreate });
+              storesList.push({
+                id: created.id,
+                name: nameForCreate,
+                slug: created.slug,
+                websiteUrl: row.url?.trim() || undefined,
+              });
+              storeNames.push(nameForCreate);
+              storesCreated += 1;
+            }
+          }
+        }
+      }
 
       if (!resolved) {
         skipped += 1;
@@ -195,11 +287,11 @@ export async function POST(req: Request) {
         if (row.store_id != null && row.store_id !== '') parts.push(`store_id ${row.store_id}`);
         const idHint = parts.length ? parts.join(', ') : 'no store identifier';
         errors.push(`Row ${rowNum}: store not found (${idHint})`);
-        return;
+        continue;
       }
 
       mappedRows.push(mapCouponRow(row, resolved.uuid, resolved.storeName));
-    });
+    }
 
     if (!mappedRows.length) {
       return new Response(
@@ -210,6 +302,8 @@ export async function POST(req: Request) {
           skipped,
           errors,
           storeCount: storesList.length,
+          storesCreated,
+          storeNames,
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
@@ -236,6 +330,8 @@ export async function POST(req: Request) {
         uploaded,
         skipped,
         errors,
+        storesCreated,
+        storeNames,
       }),
       { status: 200, headers: { 'Content-Type': 'application/json' } }
     );

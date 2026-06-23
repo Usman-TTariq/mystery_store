@@ -185,9 +185,8 @@ export default function EditStorePage() {
           seoTitle: updates.seoTitle,
           seoDescription: updates.seoDescription,
           isTrending: updates.isTrending,
-          merchant_id: updates.merchantId,
-          network_id: updates.networkId,
           tracking_link: updates.trackingLink,
+          country: updates.country,
         };
 
         const res = await fetch(`/api/stores/supabase/by-id/${encodeURIComponent(storeId)}`, {
@@ -329,57 +328,38 @@ export default function EditStorePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="merchantId" className="block text-sm font-semibold text-gray-700 mb-1">
-                Merchant ID
+              <label htmlFor="country" className="block text-sm font-semibold text-gray-700 mb-1">
+                Country
               </label>
               <input
-                id="merchantId"
-                name="merchantId"
+                id="country"
+                name="country"
                 type="text"
-                placeholder="Merchant ID (e.g., 266908)"
-                value={formData.merchantId || ''}
+                placeholder="US, UK, DE..."
+                value={formData.country || 'US'}
                 onChange={(e) =>
-                  setFormData({ ...formData, merchantId: e.target.value })
+                  setFormData({ ...formData, country: e.target.value.toUpperCase() })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                maxLength={2}
               />
             </div>
             <div>
-              <label htmlFor="networkId" className="block text-sm font-semibold text-gray-700 mb-1">
-                Network ID
+              <label htmlFor="trackingLink" className="block text-sm font-semibold text-gray-700 mb-1">
+                Tracking Link (Affiliate URL)
               </label>
               <input
-                id="networkId"
-                name="networkId"
+                id="trackingLink"
+                name="trackingLink"
                 type="text"
-                placeholder="Network ID (e.g., 2)"
-                value={formData.networkId || ''}
+                placeholder="https://example.com/track?id=123"
+                value={formData.trackingLink || ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, networkId: e.target.value })
+                  setFormData({ ...formData, trackingLink: e.target.value })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-          </div>
-
-          <div>
-            <label htmlFor="trackingLink" className="block text-sm font-semibold text-gray-700 mb-1">
-              Tracking Link (Affiliate URL)
-            </label>
-            <input
-              id="trackingLink"
-              name="trackingLink"
-              type="url"
-              placeholder="https://example.com/track?id=123"
-              value={formData.trackingLink || ''}
-              onChange={(e) =>
-                setFormData({ ...formData, trackingLink: e.target.value })
-              }
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Affiliate tracking URL for this store
-            </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

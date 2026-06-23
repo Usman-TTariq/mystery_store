@@ -296,11 +296,6 @@ export default function CouponsPage() {
       // use cached stores list
     }
 
-    if (!storesList.length) {
-      setUploadPreviewError('No stores in database. Upload stores first, then upload coupons.');
-      return;
-    }
-
     const supabaseRows = dataRows
       .map((row) => {
         const csvStoreId = idxStoreId !== -1 ? parseInt(row[idxStoreId] || '0', 10) || 0 : 0;
@@ -308,7 +303,7 @@ export default function CouponsPage() {
         const url = idxUrl !== -1 ? row[idxUrl]?.toString().trim() || null : null;
 
         const resolved = resolveStoreForUpload(storeName, csvStoreId, url, storesList);
-        if (!resolved) return null;
+        if (!resolved && !storeName) return null;
 
         const title = idxTitle !== -1 ? row[idxTitle]?.toString().trim() || null : null;
         const description =
@@ -317,9 +312,9 @@ export default function CouponsPage() {
             : title || '';
 
         return {
-          storeUuid: resolved.uuid,
-          store_id: resolved.storeId ?? (csvStoreId || null),
-          storeName: storeName || resolved.name,
+          storeUuid: resolved?.uuid,
+          store_id: resolved?.storeId ?? (csvStoreId || null),
+          storeName: storeName || resolved?.name,
           title,
           couponType: idxCouponType !== -1 ? (row[idxCouponType]?.toString().toLowerCase() === 'deal' ? 'deal' : 'code') : 'code',
           code: idxCode !== -1 ? row[idxCode] || null : null,
@@ -345,7 +340,7 @@ export default function CouponsPage() {
 
     if (!supabaseRows.length) {
       setUploadPreviewError(
-        `No rows matched any of ${storesList.length} store(s). Check "Store Name" in CSV matches store names in Admin → Stores.`
+        'No valid rows to upload. Each row needs a "Store Name" or a store_id that can be resolved.'
       );
       return;
     }
@@ -368,12 +363,19 @@ export default function CouponsPage() {
         throw new Error((result.error || 'Bulk upload failed.') + detail);
       }
 
+      const storesCreatedNote =
+        result.storesCreated > 0 && Array.isArray(result.storeNames)
+          ? `\n\n${result.storesCreated} new store(s) auto-created: ${result.storeNames.join(', ')}`
+          : '';
+
       const skippedNote =
         result.skipped > 0 && Array.isArray(result.errors)
           ? `\n\nSkipped ${result.skipped}:\n${result.errors.slice(0, 8).join('\n')}`
           : '';
 
-      alert(`Successfully uploaded ${result.uploaded ?? supabaseRows.length} coupons.${skippedNote}`);
+      alert(
+        `Successfully uploaded ${result.uploaded ?? supabaseRows.length} coupons.${storesCreatedNote}${skippedNote}`
+      );
       setShowUploadModal(false);
       setUploadPreviewRows([]);
       setUploadPreviewError(null);
@@ -408,21 +410,8 @@ export default function CouponsPage() {
   const fetchCoupons = async () => {
     setLoading(true);
     try {
-      const [firebaseCoupons, supabaseResponse] = await Promise.all([
-        getCoupons(),
-        fetch('/api/coupons/supabase')
-          .then((res) => res.json())
-          .catch((err) => {
-            console.error('Error fetching Supabase coupons in admin fetchCoupons:', err);
-            return { success: false, coupons: [] };
-          }),
-      ]);
-
-      const supabaseList: Coupon[] = Array.isArray(supabaseResponse?.coupons)
-        ? (supabaseResponse.coupons as Coupon[])
-        : [];
-
-      setCoupons([...firebaseCoupons, ...supabaseList]);
+      const couponsData = await getCoupons();
+      setCoupons(couponsData);
     } catch (err) {
       console.error('Error fetching coupons in admin fetchCoupons:', err);
       setCoupons([]);
@@ -435,23 +424,13 @@ export default function CouponsPage() {
     const load = async () => {
       setLoading(true);
       try {
-        const [firebaseCoupons, categoriesData, storesData, supabaseResponse] = await Promise.all([
+        const [couponsData, categoriesData, storesData] = await Promise.all([
           getCoupons(),
           getCategories(),
           getStores(),
-          fetch('/api/coupons/supabase')
-            .then((res) => res.json())
-            .catch((err) => {
-              console.error('Error fetching Supabase coupons in admin load:', err);
-              return { success: false, coupons: [] };
-            }),
         ]);
 
-        const supabaseList: Coupon[] = Array.isArray(supabaseResponse?.coupons)
-          ? (supabaseResponse.coupons as Coupon[])
-          : [];
-
-        setCoupons([...firebaseCoupons, ...supabaseList]);
+        setCoupons(couponsData);
         setCategories(categoriesData);
         setStores(storesData);
       } catch (err) {
@@ -464,10 +443,91 @@ export default function CouponsPage() {
     load();
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const getDefaultFormData = (): Partial<Coupon> => ({
+    code: '',
+    storeName: '',
+    discount: 0,
+    discountType: 'percentage',
+    description: '',
+    url: '',
+    isActive: true,
+    maxUses: 100,
+    currentUses: 0,
+    expiryDate: null,
+    isPopular: false,
+    layoutPosition: null,
+    isLatest: false,
+    latestLayoutPosition: null,
+    categoryId: null,
+    couponType: 'code',
+    getCodeText: '',
+    getDealText: '',
+  });
 
-    if (isCreating) return; // Prevent double submission
+  const toDateInputValue = (date: string | null | undefined): string => {
+    if (!date) return '';
+    const match = String(date).match(/^(\d{4}-\d{2}-\d{2})/);
+    if (match) return match[1];
+    const parsed = new Date(date);
+    if (Number.isNaN(parsed.getTime())) return '';
+    const y = parsed.getFullYear();
+    const m = String(parsed.getMonth() + 1).padStart(2, '0');
+    const d = String(parsed.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
+  const getStoreLogoUrl = (store: Store): string => {
+    if (store.logoUrl?.trim()) return store.logoUrl;
+    const siteUrl = store.trackingLink || store.websiteUrl;
+    if (siteUrl) {
+      try {
+        const url = new URL(siteUrl);
+        return `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=64`;
+      } catch {
+        return '';
+      }
+    }
+    return '';
+  };
+
+  const resetFormAfterCreate = (keepStore: boolean) => {
+    setFormData(getDefaultFormData());
+    setLogoFile(null);
+    setLogoPreview(null);
+    setCouponUrl('');
+    setFileInputKey((prev) => prev + 1);
+    setUploadingToCloudinary(false);
+
+    if (keepStore) {
+      if (selectedStoreIds.length > 0) {
+        const firstStore = stores.find((s) => s.id === selectedStoreIds[0]);
+        const storeLogo = firstStore ? getStoreLogoUrl(firstStore) : '';
+        if (storeLogo) {
+          setLogoUrl(storeLogo);
+          setLogoPreview(storeLogo);
+          setExtractedLogoUrl(isCloudinaryUrl(storeLogo) ? extractOriginalCloudinaryUrl(storeLogo) : null);
+          setLogoUploadMethod('url');
+        } else {
+          setLogoUrl('');
+          setExtractedLogoUrl(null);
+          setLogoUploadMethod('file');
+        }
+      } else {
+        setLogoUrl('');
+        setExtractedLogoUrl(null);
+        setLogoUploadMethod('file');
+      }
+    } else {
+      setSelectedStoreIds([]);
+      setLogoUrl('');
+      setExtractedLogoUrl(null);
+      setLogoUploadMethod('file');
+      setShowForm(false);
+    }
+  };
+
+  const submitCoupon = async (addAnother: boolean) => {
+    if (isCreating) return;
 
     setIsCreating(true);
 
@@ -567,38 +627,14 @@ export default function CouponsPage() {
       }
 
       if (result.success) {
-        alert('Coupon created successfully!');
         fetchCoupons();
-        setShowForm(false);
-        setFormData({
-          code: '',
-          storeName: '',
-          discount: 0,
-          discountType: 'percentage',
-          description: '',
-          url: '',
-          isActive: true,
-          maxUses: 100,
-          currentUses: 0,
-          expiryDate: null,
-          isPopular: false,
-          layoutPosition: null,
-          isLatest: false,
-          latestLayoutPosition: null,
-          categoryId: null,
-          couponType: 'code',
-          getCodeText: '',
-          getDealText: '',
-        });
-        setLogoFile(null);
-        setLogoPreview(null);
-        setLogoUrl('');
-        setExtractedLogoUrl(null);
-        setCouponUrl('');
-        setFileInputKey(prev => prev + 1);
-        setSelectedStoreIds([]); // Reset selected stores
-        setUploadingToCloudinary(false); // Reset upload state
-        setLogoUploadMethod('file'); // Reset to file method
+        if (addAnother) {
+          alert('Coupon created! Add another coupon for the same store.');
+          resetFormAfterCreate(true);
+        } else {
+          alert('Coupon created successfully!');
+          resetFormAfterCreate(false);
+        }
       } else {
         // Show error message
         const errorMessage = result.error instanceof Error
@@ -615,6 +651,15 @@ export default function CouponsPage() {
     } finally {
       setIsCreating(false);
     }
+  };
+
+  const handleCreate = (e: React.FormEvent) => {
+    e.preventDefault();
+    submitCoupon(false);
+  };
+
+  const handleCreateAndAddAnother = () => {
+    submitCoupon(true);
   };
 
   const handleExtractFromUrl = async () => {
@@ -1536,7 +1581,9 @@ export default function CouponsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label htmlFor="maxUses" className="sr-only">Max Uses</label>
+                <label htmlFor="maxUses" className="block text-gray-700 text-sm font-semibold mb-2">
+                  Max Uses
+                </label>
                 <input
                   id="maxUses"
                   name="maxUses"
@@ -1549,9 +1596,30 @@ export default function CouponsPage() {
                       maxUses: parseInt(e.target.value),
                     })
                   }
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
+              </div>
+              <div>
+                <label htmlFor="expiryDate" className="block text-gray-700 text-sm font-semibold mb-2">
+                  Expiry Date (Optional)
+                </label>
+                <input
+                  id="expiryDate"
+                  name="expiryDate"
+                  type="date"
+                  value={toDateInputValue(formData.expiryDate)}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      expiryDate: e.target.value || null,
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Leave empty if the coupon does not expire.
+                </p>
               </div>
             </div>
 
@@ -1577,7 +1645,7 @@ export default function CouponsPage() {
               <input
                 id="url"
                 name="url"
-                type="url"
+                type="text"
                 placeholder="https://example.com/coupon-page"
                 value={formData.url || ''}
                 onChange={(e) =>
@@ -1764,23 +1832,36 @@ export default function CouponsPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={isCreating}
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isCreating ? (
-                <>
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Creating...
-                </>
-              ) : (
-                'Create Coupon'
-              )}
-            </button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                type="submit"
+                disabled={isCreating}
+                className="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isCreating ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Coupon'
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateAndAddAnother}
+                disabled={isCreating}
+                className="flex-1 bg-emerald-600 text-white py-2 rounded-lg hover:bg-emerald-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isCreating ? 'Creating...' : 'Add Another'}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 text-center">
+              Use &quot;Add Another&quot; to save this coupon and start a new one for the same selected store.
+            </p>
           </form>
         </div>
       )}

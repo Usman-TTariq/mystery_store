@@ -10,7 +10,7 @@ import Navbar from '@/app/components/Navbar';
 import Footer from '@/app/components/Footer';
 import CouponPopup from '@/app/components/CouponPopup';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
-import { ExternalLink, Tag, CheckCircle, Calendar, Copy, Star, ArrowRight } from 'lucide-react';
+import { ExternalLink, Tag, CheckCircle, Star, ArrowRight } from 'lucide-react';
 
 // Helper function to get favicon URL from store data
 const getStoreFaviconUrl = (store: Store): string => {
@@ -93,18 +93,13 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
 
           if (storeData.id) {
             try {
-              const [firebaseCoupons, supabaseResponse, storesData] = await Promise.all([
+              const [storeCoupons, storesData] = await Promise.all([
                 getCouponsByStoreId(storeData.id),
-                fetch('/api/coupons/supabase').then((res) => res.json()).catch(() => ({ success: false, coupons: [] })),
-                getStores()
+                getStores(),
               ]);
 
-              const firebaseActive = (firebaseCoupons || []).filter((coupon) => coupon.isActive);
-              const supabaseList: Coupon[] = Array.isArray(supabaseResponse?.coupons) ? (supabaseResponse.coupons as Coupon[]) : [];
-              const supabaseForStore = supabaseList.filter((c) => Array.isArray(c.storeIds) && c.storeIds.includes(storeData!.id as string));
-
-              const merged = [...firebaseActive, ...supabaseForStore];
-              setCoupons(sortCouponsByOrder(merged, storeData.couponOrder));
+              const activeCoupons = (storeCoupons || []).filter((coupon) => coupon.isActive);
+              setCoupons(sortCouponsByOrder(activeCoupons, storeData.couponOrder));
               setAllStores(storesData);
             } catch (couponErr) {
               console.error('Error fetching coupons for store:', couponErr);
@@ -172,12 +167,6 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
     }
   };
 
-  const formatDate = (timestamp: unknown) => {
-    const date = toJsDate(timestamp);
-    if (!date) return null;
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
-
   const getLastTwoDigits = (coupon: Coupon): string | null => {
     if ((coupon.couponType || 'deal') === 'code' && coupon.code) {
       const code = coupon.code.trim();
@@ -187,6 +176,18 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
     }
     return null;
   };
+
+  const getCouponTitle = (coupon: Coupon): string => {
+    if (coupon.description?.trim()) return coupon.description.trim();
+    if (coupon.discount) {
+      return coupon.discountType === 'percentage'
+        ? `${coupon.discount}% Off`
+        : `$${coupon.discount} Off`;
+    }
+    return coupon.getCodeText || coupon.getDealText || 'Special Offer';
+  };
+
+  const storeLogoUrl = store ? (store.logoUrl || getStoreFaviconUrl(store)) : '';
 
   // Get related stores (exclude current store)
   const relatedStores = allStores.filter(s => s.id !== store?.id).slice(0, 8);
@@ -372,56 +373,64 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
               {coupons.map((coupon, index) => {
                 const expiry = toJsDate(coupon.expiryDate);
                 const isExpired = expiry ? expiry < new Date() : false;
+                const isCode = coupon.couponType !== 'deal';
+                const buttonLabel = isCode
+                  ? (copiedCode === coupon.code ? 'Copied!' : (coupon.getCodeText || 'Get Code'))
+                  : (coupon.getDealText || 'Get Deal');
 
                 return (
                   <motion.div
                     key={coupon.id}
-                    className="group relative bg-white rounded-2xl p-6 shadow-md hover:shadow-2xl transition-all duration-300 border border-gray-100 hover:border-[#0B453C]/30 cursor-pointer"
+                    className="group bg-white rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200 hover:border-[#0B453C] flex items-center gap-4 cursor-pointer"
                     onClick={() => !isExpired && handleCouponClick(coupon)}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                    whileHover={{ y: -5 }}
+                    transition={{ duration: 0.5, delay: index * 0.05 }}
                   >
-                    {/* Gradient Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 via-transparent to-emerald-50/30 rounded-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                    <div className="relative z-10">
-                      {/* Header */}
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
-                          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                            {coupon.storeName || coupon.title || 'Special Offer'}
-                          </h3>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <div className="flex items-center gap-1 text-green-600 text-sm">
-                              <CheckCircle className="w-4 h-4" />
-                              <span className="font-medium">Verified</span>
-                            </div>
-                            {coupon.expiryDate && (
-                              <div className="flex items-center gap-1 text-gray-500 text-sm">
-                                <Calendar className="w-4 h-4" />
-                                <span>{formatDate(coupon.expiryDate) || '31 Dec, 2025'}</span>
-                              </div>
-                            )}
-                          </div>
+                    {/* Logo */}
+                    <div className="flex-shrink-0">
+                      {storeLogoUrl ? (
+                        <div className="w-16 h-16 rounded-lg border border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
+                          <img
+                            src={storeLogoUrl}
+                            alt={store.name}
+                            className="w-full h-full object-contain p-1"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `<div class="w-16 h-16 rounded-lg bg-gradient-to-br from-[#0B453C] to-emerald-600 flex items-center justify-center"><span class="text-xl font-bold text-white">${store.name.charAt(0).toUpperCase()}</span></div>`;
+                              }
+                            }}
+                          />
                         </div>
-                      </div>
-
-                      {/* Description */}
-                      {coupon.description && (
-                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                          {coupon.description}
-                        </p>
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-gradient-to-br from-[#0B453C] to-emerald-600 flex items-center justify-center">
+                          <span className="text-xl font-bold text-white">
+                            {store.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
                       )}
+                    </div>
 
-                      {/* Button */}
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-base font-bold text-gray-900 mb-0.5 line-clamp-1">
+                        {getCouponTitle(coupon)}
+                      </h3>
+                      <p className="text-sm text-gray-500 line-clamp-1">
+                        Verified and Hand Tested Code
+                      </p>
+                    </div>
+
+                    {/* Button */}
+                    <div className="flex-shrink-0">
                       {isExpired ? (
-                        <div className="bg-red-50 text-red-700 text-sm font-semibold px-4 py-2.5 rounded-lg text-center border border-red-200">
+                        <div className="bg-red-100 text-red-700 text-xs font-semibold px-4 py-2 rounded whitespace-nowrap">
                           Expired
                         </div>
                       ) : (
@@ -430,27 +439,22 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
                             e.stopPropagation();
                             handleCouponClick(coupon);
                           }}
-                          className="relative w-full bg-gradient-to-r from-[#0B453C] to-[#0f5c4e] text-white font-semibold px-6 py-3 rounded-lg transition-all duration-300 group/btn hover:shadow-lg flex items-center justify-center gap-2 overflow-hidden"
+                          className="group/btn relative bg-gradient-to-r from-[#0B453C] to-emerald-600 border-2 border-dashed border-white/60 rounded-lg px-6 py-3 text-white font-semibold hover:from-emerald-700 hover:to-[#0B453C] transition-all duration-300 shadow-md hover:shadow-lg whitespace-nowrap"
                         >
-                          <span className="flex items-center gap-2">
-                            {coupon.couponType === 'code' ? (
-                              <>
-                                <Copy className="w-4 h-4" />
-                                {copiedCode === coupon.code ? 'Copied!' : (coupon.getCodeText || 'Get Code')}
-                              </>
-                            ) : (
-                              <>
-                                <ExternalLink className="w-4 h-4" />
-                                {coupon.getDealText || 'Get Deal'}
-                              </>
-                            )}
-                          </span>
-                          {getLastTwoDigits(coupon) && (
-                            <div className="hidden sm:flex w-0 opacity-0 group-hover/btn:w-16 group-hover/btn:opacity-100 transition-all duration-300 items-center justify-center border-l-2 border-dashed border-white/70 ml-2 pl-2">
-                              <span className="text-white font-bold text-xs">...{getLastTwoDigits(coupon)}</span>
-                            </div>
+                          {copiedCode === coupon.code && isCode ? (
+                            <span className="font-bold">{buttonLabel}</span>
+                          ) : (
+                            <>
+                              <span className="group-hover/btn:hidden">{buttonLabel}</span>
+                              {getLastTwoDigits(coupon) ? (
+                                <span className="hidden group-hover/btn:inline font-bold">
+                                  {buttonLabel} {getLastTwoDigits(coupon)}
+                                </span>
+                              ) : (
+                                <span className="hidden group-hover/btn:inline font-bold">{buttonLabel}</span>
+                              )}
+                            </>
                           )}
-                          <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                         </button>
                       )}
                     </div>

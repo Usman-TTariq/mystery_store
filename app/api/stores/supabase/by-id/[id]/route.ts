@@ -10,9 +10,8 @@ interface SupabaseStoreRow {
   seoDescription?: string | null;
   slug?: string | null;
   subStoreName?: string | null;
-  merchant_id?: string | null;
-  network_id?: string | null;
   tracking_link?: string | null;
+  country?: string | null;
 }
 
 export async function GET(
@@ -130,9 +129,8 @@ export async function PATCH(
     if (body.seoTitle !== undefined) updates.seoTitle = body.seoTitle;
     if (body.seoDescription !== undefined) updates.seoDescription = body.seoDescription;
     if (body.isTrending !== undefined) updates.isTrending = body.isTrending;
-    if (body.merchant_id !== undefined) updates.merchant_id = body.merchant_id;
-    if (body.network_id !== undefined) updates.network_id = body.network_id;
     if (body.tracking_link !== undefined) updates.tracking_link = body.tracking_link;
+    if (body.country !== undefined) updates.country = body.country;
 
     // Make sure something is being updated
     if (Object.keys(updates).length === 0) {

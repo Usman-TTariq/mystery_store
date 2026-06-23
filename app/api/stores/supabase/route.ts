@@ -10,8 +10,6 @@ interface SupabaseStoreRow {
   seoDescription?: string | null;
   slug?: string | null;
   subStoreName?: string | null;
-  merchant_id?: string | null;
-  network_id?: string | null;
   tracking_link?: string | null;
 }
 
@@ -22,7 +20,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('stores')
       .select('*')
-      .order('store_id', { ascending: true });
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error('Supabase get stores error:', error);
@@ -48,8 +46,6 @@ export async function GET() {
       layoutPosition: row.layout_position || null,
       categoryId: row.category_id || null,
       couponOrder: row.coupon_order || null,
-      merchantId: row.merchant_id || undefined,
-      networkId: row.network_id || undefined,
       trackingLink: row.tracking_link || undefined,
       createdAt: row.created_at || undefined,
     }));

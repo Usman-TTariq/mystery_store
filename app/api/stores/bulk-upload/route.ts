@@ -6,8 +6,6 @@ interface IncomingStoreRow {
   logo_url?: string | null;
   website_url?: string | null;
   tracking_link?: string | null;
-  merchant_id?: string | null;
-  network_id?: string | null;
   country?: string | null;
   status?: string | null;
   featured?: boolean | null;
@@ -25,8 +23,6 @@ function mapStoreRow(row: IncomingStoreRow) {
     store_logo_url: row.logo_url ?? null,
     website_url: row.website_url ?? null,
     tracking_link: row.tracking_link ?? null,
-    merchant_id: row.merchant_id ?? null,
-    network_id: row.network_id ?? null,
     country: row.country ?? null,
     status: row.status ?? null,
     seoTitle: row.seo_title ?? null,

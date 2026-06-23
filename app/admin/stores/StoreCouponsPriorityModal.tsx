@@ -108,7 +108,7 @@ export default function StoreCouponsPriorityModal({ store, onClose }: StoreCoupo
 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/50">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         <div className="flex items-start justify-between px-6 py-5 border-b border-gray-200">
           <div>
             <h2 className="text-xl font-bold text-gray-900 pr-8">{`Coupons — ${modalTitle}`}</h2>
@@ -116,7 +116,7 @@ export default function StoreCouponsPriorityModal({ store, onClose }: StoreCoupo
               {stats.total} coupons · {stats.active} active · {stats.inactive} inactive
             </p>
             <p className="text-sm text-gray-600 mt-2">
-              Drag rows to set display order (priority). Top = shown first on store page.
+              Drag and drop to reorder. Top item shows first on the store page.
             </p>
           </div>
           <button
@@ -137,50 +137,38 @@ export default function StoreCouponsPriorityModal({ store, onClose }: StoreCoupo
           ) : coupons.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No coupons for this store.</p>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-left text-gray-600">
-                  <th className="pb-3 w-10" aria-label="Drag" />
-                  <th className="pb-3 w-10 font-semibold">#</th>
-                  <th className="pb-3 font-semibold">Title</th>
-                  <th className="pb-3 font-semibold">Code</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold">Expiry</th>
-                </tr>
-              </thead>
-              <tbody>
-                {coupons.map((coupon, index) => (
-                  <tr
-                    key={coupon.id}
-                    draggable
-                    onDragStart={() => handleDragStart(index)}
-                    onDragEnter={() => handleDragEnter(index)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={(e) => e.preventDefault()}
-                    className="border-b border-gray-100 hover:bg-gray-50 cursor-grab active:cursor-grabbing"
+            <ul className="space-y-2">
+              {coupons.map((coupon, index) => (
+                <li
+                  key={coupon.id}
+                  draggable
+                  onDragStart={() => handleDragStart(index)}
+                  onDragEnter={() => handleDragEnter(index)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => e.preventDefault()}
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-3 hover:bg-gray-50 cursor-grab active:cursor-grabbing"
+                >
+                  <GripVertical className="w-5 h-5 shrink-0 text-gray-400" aria-hidden="true" />
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 truncate">{coupon.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {coupon.code ? `Code: ${coupon.code}` : 'No code'}
+                      {' · '}
+                      Expires: {formatExpiry(coupon.expiryDate)}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                      coupon.isActive
+                        ? 'bg-green-100 text-green-700'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}
                   >
-                    <td className="py-3 text-gray-400">
-                      <GripVertical className="w-4 h-4" />
-                    </td>
-                    <td className="py-3 text-gray-700">{index + 1}</td>
-                    <td className="py-3 text-gray-900 font-medium pr-4">{coupon.title}</td>
-                    <td className="py-3 text-gray-700 font-mono">{coupon.code || '—'}</td>
-                    <td className="py-3">
-                      <span
-                        className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                          coupon.isActive
-                            ? 'bg-green-100 text-green-700'
-                            : 'bg-gray-100 text-gray-600'
-                        }`}
-                      >
-                        {coupon.isActive ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
-                    <td className="py-3 text-gray-600">{formatExpiry(coupon.expiryDate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    {coupon.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 

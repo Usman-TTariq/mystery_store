@@ -26,8 +26,6 @@ CREATE TABLE IF NOT EXISTS stores (
   logo_alt TEXT,
   website_url TEXT,
   tracking_link TEXT,
-  merchant_id TEXT,
-  network_id TEXT,
   country TEXT,
   status TEXT,
   voucher_text TEXT,
