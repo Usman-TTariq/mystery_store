@@ -1,15 +1,14 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { getBannerByLayoutPosition, Banner } from '@/lib/services/bannerService';
 import { getStores, Store } from '@/lib/services/storeService';
 import Navbar from '@/app/components/Navbar';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import Newsletter from '@/app/components/Newsletter';
 import Footer from '@/app/components/Footer';
-import Image from 'next/image';
-import { Filter, SortAsc, LayoutGrid, Star, CheckCircle } from 'lucide-react';
+import PageHeroBanner from '@/app/components/PageHeroBanner';
+import { Filter, Search, X } from 'lucide-react';
 
 // Helper function to get favicon URL from store data
 const getStoreFaviconUrl = (store: Store): string => {
@@ -48,17 +47,15 @@ const getStoreFaviconUrl = (store: Store): string => {
 };
 
 export default function StoresPage() {
-  const [banner10, setBanner10] = useState<Banner | null>(null);
   const [stores, setStores] = useState<Store[]>([]);
-  const [filteredStores, setFilteredStores] = useState<Store[]>([]);
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState<string>('newest');
   const [showFilter, setShowFilter] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-  const sliderRef = useRef<HTMLDivElement>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
   const [supabaseStores, setSupabaseStores] = useState<Store[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const storesPerPage = 24;
+  const storesPerPage = 16;
 
   // Deduplicate stores by slug (or name if slug is missing)
   const deduplicateStores = (storesList: Store[]): Store[] => {
@@ -83,25 +80,73 @@ export default function StoresPage() {
   // Combine and deduplicate stores
   const allStores = deduplicateStores([...stores, ...supabaseStores]);
 
+  const availableCountries = useMemo(() => {
+    const countries = new Set<string>();
+    allStores.forEach((store) => {
+      if (store.country?.trim()) countries.add(store.country.trim().toUpperCase());
+    });
+    return Array.from(countries).sort();
+  }, [allStores]);
+
+  const filteredStores = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+
+    return allStores.filter((store) => {
+      const matchesSearch =
+        !query ||
+        store.name.toLowerCase().includes(query) ||
+        (store.subStoreName?.toLowerCase().includes(query) ?? false) ||
+        (store.slug?.toLowerCase().includes(query) ?? false);
+
+      const matchesCountry =
+        !countryFilter || store.country?.trim().toUpperCase() === countryFilter;
+
+      return matchesSearch && matchesCountry;
+    });
+  }, [allStores, searchQuery, countryFilter]);
+
+  const sortedAllStores = useMemo(() => {
+    const list = [...filteredStores];
+
+    switch (sortBy) {
+      case 'newest':
+        list.sort((a, b) => {
+          const dateA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : (a.createdAt as { toMillis?: () => number }).toMillis?.() || 0) : 0;
+          const dateB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : (b.createdAt as { toMillis?: () => number }).toMillis?.() || 0) : 0;
+          return dateB - dateA;
+        });
+        break;
+      case 'oldest':
+        list.sort((a, b) => {
+          const dateA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : (a.createdAt as { toMillis?: () => number }).toMillis?.() || 0) : 0;
+          const dateB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : (b.createdAt as { toMillis?: () => number }).toMillis?.() || 0) : 0;
+          return dateA - dateB;
+        });
+        break;
+      case 'name-asc':
+        list.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'name-desc':
+        list.sort((a, b) => b.name.localeCompare(a.name));
+        break;
+      default:
+        break;
+    }
+
+    return list;
+  }, [filteredStores, sortBy]);
+
   // Calculate pagination
-  const totalPages = Math.ceil(allStores.length / storesPerPage);
+  const totalPages = Math.ceil(sortedAllStores.length / storesPerPage);
   const startIndex = (currentPage - 1) * storesPerPage;
   const endIndex = startIndex + storesPerPage;
-  const newStores = allStores.slice(startIndex, endIndex);
+  const newStores = sortedAllStores.slice(startIndex, endIndex);
+
   useEffect(() => {
-    // Check if mobile on mount and resize
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 640);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [bannerData, storesData, supabaseResponse] = await Promise.all([
-          getBannerByLayoutPosition(10),
+        const [storesData, supabaseResponse] = await Promise.all([
           getStores(),
           fetch('/api/stores/supabase')
             .then((res) => res.json())
@@ -115,10 +160,8 @@ export default function StoresPage() {
           ? (supabaseResponse.stores as Store[])
           : [];
 
-        setBanner10(bannerData);
         setStores(storesData);
         setSupabaseStores(supabaseList);
-        setFilteredStores(storesData);
       } catch (error) {
         console.error('Error fetching stores page data:', error);
       } finally {
@@ -126,93 +169,18 @@ export default function StoresPage() {
       }
     };
     fetchData();
-
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
   }, []);
 
   useEffect(() => {
-    // Reset to page 1 when sort changes
     setCurrentPage(1);
-    // Sort stores based on selected option
-    let sorted = [...stores];
+  }, [sortBy, searchQuery, countryFilter]);
 
-    switch (sortBy) {
-      case 'newest':
-        sorted.sort((a, b) => {
-          const dateA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : (a.createdAt as any).toMillis?.() || 0) : 0;
-          const dateB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : (b.createdAt as any).toMillis?.() || 0) : 0;
-          return dateB - dateA;
-        });
-        break;
-      case 'oldest':
-        sorted.sort((a, b) => {
-          const dateA = a.createdAt ? (typeof a.createdAt === 'string' ? new Date(a.createdAt).getTime() : (a.createdAt as any).toMillis?.() || 0) : 0;
-          const dateB = b.createdAt ? (typeof b.createdAt === 'string' ? new Date(b.createdAt).getTime() : (b.createdAt as any).toMillis?.() || 0) : 0;
-          return dateA - dateB;
-        });
-        break;
-      case 'name-asc':
-        sorted.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case 'name-desc':
-        sorted.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      default:
-        break;
-    }
+  const hasActiveFilters = Boolean(searchQuery.trim() || countryFilter);
 
-    setFilteredStores(sorted);
-  }, [sortBy, stores]);
-
-  // Auto-scroll slider with smooth continuous loop (desktop only)
-  useEffect(() => {
-    if (!sliderRef.current || filteredStores.length === 0 || isMobile) return;
-
-    const slider = sliderRef.current;
-    let animationFrameId: number;
-    let scrollPosition = 0;
-    const scrollSpeed = 0.5; // pixels per frame (slower for smoother effect)
-    let isPaused = false;
-
-    // Pause on hover
-    const handleMouseEnter = () => { isPaused = true; };
-    const handleMouseLeave = () => { isPaused = false; };
-
-    slider.addEventListener('mouseenter', handleMouseEnter);
-    slider.addEventListener('mouseleave', handleMouseLeave);
-
-    const scroll = () => {
-      if (slider && !isPaused) {
-        scrollPosition += scrollSpeed;
-
-        // Calculate the width of first set of items (for seamless loop)
-        const firstSetWidth = (slider.scrollWidth / 3);
-
-        if (scrollPosition >= firstSetWidth) {
-          // Reset to start seamlessly
-          scrollPosition = scrollPosition - firstSetWidth;
-          slider.scrollLeft = scrollPosition;
-        } else {
-          slider.scrollLeft = scrollPosition;
-        }
-      }
-
-      animationFrameId = requestAnimationFrame(scroll);
-    };
-
-    // Start scrolling
-    animationFrameId = requestAnimationFrame(scroll);
-
-    return () => {
-      if (animationFrameId) {
-        cancelAnimationFrame(animationFrameId);
-      }
-      slider.removeEventListener('mouseenter', handleMouseEnter);
-      slider.removeEventListener('mouseleave', handleMouseLeave);
-    };
-  }, [filteredStores]);
+  const clearFilters = () => {
+    setSearchQuery('');
+    setCountryFilter('');
+  };
 
   return (
     <div className="min-h-screen bg-white overflow-x-hidden w-full">
@@ -251,65 +219,65 @@ export default function StoresPage() {
       `}</style>
       <Navbar />
 
-      {/* Banner Section with Layout 10 - 1728x547 */}
-      <div className="w-full">
-        {loading ? (
-          <div className="w-full bg-gray-100 aspect-[1728/547] min-h-[200px] sm:min-h-[250px] animate-pulse"></div>
-        ) : banner10 ? (
-          <div className="relative w-full">
-            <div className="w-full aspect-[1728/547] min-h-[200px] sm:min-h-[250px]">
-              <img
-                src={banner10.imageUrl}
-                alt={banner10.title || 'Stores'}
-                className="w-full h-full object-contain sm:object-cover"
-                onError={(e) => {
-                  console.error('Stores banner 10 image failed to load:', banner10.imageUrl);
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="w-full aspect-[1728/547] min-h-[200px] sm:min-h-[250px] bg-gradient-to-r from-green-50 to-emerald-50"></div>
-        )}
-      </div>
+      <PageHeroBanner
+        src="/banners/store-banner-1.webp"
+        alt="All Stores – Coupons & Cashback"
+        mobileFit="contain"
+      />
 
       {/* Breadcrumbs */}
       <Breadcrumbs
+        className="border-b border-gray-100"
         items={[
           { label: 'Stores' }
         ]}
       />
 
       {/* Stores Grid Section */}
-      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-6 sm:py-8 md:py-12 lg:py-16 bg-white overflow-x-hidden">
+      <div className="w-full px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-8 md:py-12 lg:py-16 bg-white overflow-x-hidden">
         <div className="max-w-7xl mx-auto w-full">
-          <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 sm:mb-6 md:mb-8">
+          <h2 className="hidden sm:block text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-4 sm:mb-6 md:mb-8">
             All <span className="text-orange-600">Stores</span>
           </h2>
 
           {/* Filter and Sort Bar */}
-          <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8 pb-3 sm:pb-4 border-b border-green-100">
-            <div className="text-xs sm:text-sm md:text-base text-gray-600 text-center sm:text-left">
-              Showing <span className="font-semibold text-[#0B453C]">{newStores.length}</span> of <span className="font-semibold text-[#0B453C]">{allStores.length}</span> Results
+          <div className="flex flex-col gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8 pb-3 sm:pb-4 border-b border-[#0B453C]/15">
+            <div className="text-xs sm:text-sm md:text-base text-gray-700 text-left">
+              Showing{' '}
+              <span className="font-semibold text-[#0B453C]">{newStores.length}</span> of{' '}
+              <span className="font-semibold text-[#0B453C]">{sortedAllStores.length}</span> Results
+              {hasActiveFilters && sortedAllStores.length !== allStores.length && (
+                <span className="text-gray-500"> (filtered from {allStores.length})</span>
+              )}
             </div>
 
-            <div className="flex flex-col xs:flex-row items-stretch xs:items-center justify-between gap-2 xs:gap-3 sm:gap-4 w-full">
+            <div className="flex flex-row items-center gap-2 sm:gap-3 w-full">
               <button
+                type="button"
                 onClick={() => setShowFilter(!showFilter)}
-                className="flex items-center justify-center gap-2 px-3 sm:px-4 py-2 border border-green-200 text-[#0B453C] rounded-lg hover:bg-green-50 active:bg-green-100 transition-colors text-xs sm:text-sm md:text-base font-medium w-full xs:w-auto"
+                className={`flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 sm:px-4 py-2 border-2 rounded-lg transition-colors text-xs sm:text-sm md:text-base font-semibold min-w-0 ${
+                  showFilter || hasActiveFilters
+                    ? 'border-[#0B453C] bg-[#0B453C] text-white shadow-sm hover:bg-[#0a3d35]'
+                    : 'border-[#0B453C] text-[#0B453C] bg-emerald-50 hover:bg-[#0B453C]/10 active:bg-[#0B453C]/15'
+                }`}
               >
-                <Filter className="w-4 h-4" />
+                <Filter className="w-4 h-4 shrink-0" />
                 Filter
+                {hasActiveFilters && (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1.5 text-[10px] font-bold text-[#0B453C]">
+                    {(searchQuery.trim() ? 1 : 0) + (countryFilter ? 1 : 0)}
+                  </span>
+                )}
               </button>
 
-              <div className="flex items-center gap-2 w-full xs:w-auto">
-                <span className="text-xs sm:text-sm md:text-base text-gray-600 whitespace-nowrap">Sort By:</span>
+              <div className="flex flex-1 items-center gap-2 min-w-0">
+                <span className="hidden xs:inline text-xs sm:text-sm md:text-base text-[#0B453C] font-medium whitespace-nowrap shrink-0">
+                  Sort:
+                </span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="flex-1 xs:flex-none px-2 sm:px-3 py-2 border border-green-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B453C] text-xs sm:text-sm md:text-base bg-white cursor-pointer"
+                  className="w-full min-w-0 px-2 sm:px-3 py-2 border-2 border-[#0B453C]/25 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0B453C] focus:border-[#0B453C] text-xs sm:text-sm md:text-base bg-emerald-50/50 text-gray-900 cursor-pointer"
                 >
                   <option value="newest">Newest</option>
                   <option value="oldest">Oldest</option>
@@ -318,6 +286,49 @@ export default function StoresPage() {
                 </select>
               </div>
             </div>
+
+            {showFilter && (
+              <div className="rounded-lg border-2 border-[#0B453C]/25 bg-gradient-to-r from-[#0B453C]/10 via-emerald-50 to-[#0B453C]/10 p-3 sm:p-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#0B453C]/60" />
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search stores by name..."
+                      className="w-full rounded-lg border-2 border-[#0B453C]/25 bg-white py-2 pl-9 pr-3 text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#0B453C] focus:border-[#0B453C]"
+                    />
+                  </div>
+
+                  {availableCountries.length > 0 && (
+                    <select
+                      value={countryFilter}
+                      onChange={(e) => setCountryFilter(e.target.value)}
+                      className="w-full sm:w-44 rounded-lg border-2 border-[#0B453C]/25 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0B453C] focus:border-[#0B453C] cursor-pointer"
+                    >
+                      <option value="">All Countries</option>
+                      {availableCountries.map((country) => (
+                        <option key={country} value={country}>
+                          {country}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={clearFilters}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-lg border-2 border-[#0B453C] bg-[#0B453C] px-3 py-2 text-sm font-semibold text-white hover:bg-[#0a3d35] transition-colors"
+                    >
+                      <X className="h-4 w-4" />
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {loading ? (
@@ -326,154 +337,72 @@ export default function StoresPage() {
                 <div key={i} className="bg-gray-100 rounded-lg aspect-square animate-pulse"></div>
               ))}
             </div>
-          ) : stores.length === 0 ? (
+          ) : sortedAllStores.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">No stores available yet.</p>
+              <p className="text-gray-500 text-lg">
+                {hasActiveFilters ? 'No stores match your filters.' : 'No stores available yet.'}
+              </p>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="mt-4 text-sm font-semibold text-[#0B453C] hover:underline"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           ) : (
             <div>
-              {/* Featured Stores Slider (First 6 stores) */}
-              {filteredStores.length > 0 && (
-                <div className="mb-4 sm:mb-6 md:mb-12">
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6 px-2 sm:px-0">
-                    Featured <span className="text-[#0B453C]">Stores</span>
-                  </h3>
-                  <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 via-white to-emerald-50 p-2 sm:p-3 md:p-4 lg:p-6 border border-green-100">
-                    <div
-                      ref={sliderRef}
-                      className="flex gap-2 sm:gap-3 md:gap-4 lg:gap-6 overflow-x-auto scrollbar-hide pb-2 pt-2 snap-x snap-mandatory"
-                      style={{ scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}
-                    >
-                      {/* Mobile: Show only first 6 stores, Desktop: Show duplicated for seamless loop */}
-                      {[...filteredStores.slice(0, 6), ...filteredStores.slice(0, 6), ...filteredStores.slice(0, 6)].map((store, index) => (
-                        <Link
-                          key={`${store.id}-${index}`}
-                          href={`/stores/${store.slug || store.id}`}
-                          className="group flex flex-col flex-shrink-0 w-[140px] xs:w-[160px] sm:w-[180px] md:w-[200px] lg:w-[220px] bg-white rounded-xl sm:rounded-2xl border border-gray-100 hover:border-[#0B453C] active:border-[#0B453C] transition-all duration-300 shadow-md hover:shadow-xl active:shadow-lg overflow-hidden cursor-pointer transform active:scale-95 sm:hover:-translate-y-1 sm:hover:scale-[1.02] relative snap-start"
-                          style={{
-                            animation: `fadeInUp 0.6s ease-out ${index * 0.1}s both`
+              {/* Mobile grid — 16 per page */}
+              <div className="grid grid-cols-2 gap-3 sm:hidden">
+                {newStores.map((store) => (
+                  <Link
+                    key={store.id}
+                    href={`/stores/${store.slug || store.id}`}
+                    className="group flex flex-col bg-white rounded-xl border border-gray-100 hover:border-[#0B453C] active:border-[#0B453C] transition-all duration-300 shadow-md overflow-hidden"
+                  >
+                    <div className="aspect-[4/3] px-3 pt-3 pb-1.5 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50">
+                      <div className="w-full h-full flex items-center justify-center">
+                        <img
+                          src={store.logoUrl || getStoreFaviconUrl(store)}
+                          alt={store.name}
+                          className="max-w-full max-h-full object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const faviconUrl = getStoreFaviconUrl(store);
+                            if (target.src !== faviconUrl && store.logoUrl) {
+                              target.src = faviconUrl;
+                            } else {
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `<div class="text-gray-400 text-[10px] text-center font-semibold line-clamp-2">${store.name}</div>`;
+                              }
+                            }
                           }}
-                        >
-                          {/* Logo Section */}
-                          <div className="aspect-[4/3] px-4 pt-3 pb-1.5 sm:px-5 sm:pt-4 sm:pb-2 flex flex-col items-center justify-center relative bg-gradient-to-br from-gray-50 via-white to-gray-50 transition-all duration-500 flex-shrink-0">
-                            <div className="w-full h-full flex items-center justify-center transform group-hover:scale-110 transition-transform duration-500">
-                              <img
-                                src={store.logoUrl || getStoreFaviconUrl(store)}
-                                alt={store.name}
-                                className="max-w-full max-h-full object-contain drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-500"
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  // If logoUrl failed, try favicon
-                                  const faviconUrl = getStoreFaviconUrl(store);
-                                  if (target.src !== faviconUrl && store.logoUrl) {
-                                    target.src = faviconUrl;
-                                  } else {
-                                    // If both failed, show gradient badge
-                                    target.style.display = 'none';
-                                    const parent = target.parentElement;
-                                    if (parent) {
-                                      parent.innerHTML = `<div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg">${store.name.charAt(0).toUpperCase()}</div>`;
-                                    }
-                                  }
-                                }}
-                              />
-                            </div>
-                          </div>
-
-                          {/* Content Section - Footer */}
-                          <div className="px-2 py-1.5 sm:px-3 md:px-4 sm:py-2 border-t border-gray-100 bg-white relative z-20 mt-auto">
-                            <h3 className="font-bold text-xs sm:text-sm md:text-base text-gray-900 text-center break-words group-hover:text-[#0B453C] transition-colors duration-300 mb-1 line-clamp-2">
-                              {store.name}
-                            </h3>
-                            {store.voucherText && (
-                              <div className="flex justify-center mt-1">
-                                <span className="inline-block bg-gradient-to-r from-[#0B453C] to-emerald-600 text-white text-[10px] xs:text-xs font-bold px-2 xs:px-3 py-1 xs:py-1.5 rounded-full shadow-lg group-hover:shadow-xl transform group-hover:scale-110 transition-all duration-300 line-clamp-1">
-                                  {store.voucherText}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Shine Effect */}
-                          <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-30"></div>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* All Stores - Horizontal Scroll on Mobile, Grid on Desktop */}
-              {filteredStores.length > 0 && (
-                <div className="mb-4 sm:mb-0">
-                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 md:mb-6 px-2 sm:px-0">
-                    All <span className="text-[#0B453C]">Stores</span>
-                  </h3>
-
-                  {/* Mobile: Horizontal Scroll */}
-                  <div className="block sm:hidden">
-                    <div className="relative -mx-3 sm:-mx-4">
-                      {/* Scroll indicator gradient */}
-                      <div className="absolute right-0 top-0 bottom-0 w-8 sm:w-12 bg-gradient-to-l from-white to-transparent pointer-events-none z-10"></div>
-                      <div className="overflow-x-auto scrollbar-hide pb-4 px-3 sm:px-4 snap-x snap-mandatory w-full" style={{ WebkitOverflowScrolling: 'touch' }}>
-                        <div className="flex gap-3 sm:gap-4" style={{ width: 'max-content' }}>
-                          {newStores.map((store, index) => (
-                            <Link
-                              key={store.id}
-                              href={`/stores/${store.slug || store.id}`}
-                              className="group flex flex-col bg-white rounded-xl sm:rounded-2xl border border-gray-100 hover:border-[#0B453C] active:border-[#0B453C] transition-all duration-300 shadow-md hover:shadow-xl active:shadow-lg overflow-hidden cursor-pointer transform active:scale-95 relative flex-shrink-0 w-[140px] xs:w-[160px] snap-start"
-                            >
-                              {/* Logo Section */}
-                              <div className="aspect-[4/3] px-4 pt-3 pb-1.5 flex flex-col items-center justify-center relative bg-gradient-to-br from-gray-50 via-white to-gray-50 transition-all duration-500 flex-shrink-0">
-                                {store.logoUrl ? (
-                                  <div className="w-full h-full flex items-center justify-center transform group-hover:scale-110 transition-transform duration-500">
-                                    <img
-                                      src={store.logoUrl}
-                                      alt={store.name}
-                                      className="max-w-full max-h-full object-contain drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-500"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        const parent = target.parentElement;
-                                        if (parent) {
-                                          parent.innerHTML = `<div class="text-gray-400 text-xs text-center font-semibold">${store.name}</div>`;
-                                        }
-                                      }}
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="text-gray-400 text-xs text-center font-semibold group-hover:text-orange-600 transition-colors">
-                                    {store.name}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Content Section - Footer */}
-                              <div className="px-2 py-1.5 sm:px-3 border-t border-gray-100 bg-white relative z-20 mt-auto">
-                                <h3 className="font-bold text-[11px] xs:text-xs text-gray-900 text-center break-words group-hover:text-[#0B453C] transition-colors duration-300 mb-1 line-clamp-2">
-                                  {store.name}
-                                </h3>
-                                {store.voucherText && (
-                                  <div className="flex justify-center mt-1">
-                                    <span className="inline-block bg-gradient-to-r from-[#0B453C] to-emerald-600 text-white text-[9px] xs:text-[10px] font-bold px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-full shadow-lg group-hover:shadow-xl transform group-hover:scale-110 transition-all duration-300 line-clamp-1">
-                                      {store.voucherText}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Shine Effect */}
-                              <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none z-30"></div>
-                            </Link>
-                          ))}
-                        </div>
+                        />
                       </div>
                     </div>
-                  </div>
+                    <div className="px-2 py-2 border-t border-gray-100 bg-white">
+                      <h3 className="font-bold text-[11px] text-gray-900 text-center line-clamp-2 group-hover:text-[#0B453C] transition-colors">
+                        {store.name}
+                      </h3>
+                      {store.voucherText && (
+                        <div className="flex justify-center mt-1">
+                          <span className="inline-block bg-gradient-to-r from-[#0B453C] to-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full line-clamp-1">
+                            {store.voucherText}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
 
-                  {/* Desktop: Grid Layout */}
-                  <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
-                    {newStores.map((store, index) => (
+              {/* Desktop: paginated grid */}
+              <div className="hidden sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 sm:gap-4 md:gap-5 lg:gap-6">
+                {newStores.map((store, index) => (
                       <Link
                         key={store.id}
                         href={`/stores/${store.slug || store.id}`}
@@ -527,8 +456,6 @@ export default function StoresPage() {
                       </Link>
                     ))}
                   </div>
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -536,7 +463,7 @@ export default function StoresPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
           <div className="flex justify-center items-center gap-2">
             {/* Previous Button */}
             <button
@@ -614,7 +541,7 @@ export default function StoresPage() {
 
           {/* Page Info */}
           <div className="text-center mt-4 text-gray-600">
-            Showing {startIndex + 1}-{Math.min(endIndex, allStores.length)} of {allStores.length} stores
+            Showing {startIndex + 1}-{Math.min(endIndex, sortedAllStores.length)} of {sortedAllStores.length} stores
           </div>
         </div>
       )}

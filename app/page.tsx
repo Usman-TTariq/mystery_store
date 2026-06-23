@@ -21,7 +21,7 @@ export default async function Home() {
   const banners = await getBannersWithLayout();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white overflow-x-hidden w-full max-w-full">
       <Navbar />
       {/* Hero Section with Multi-Panel Layout */}
       <MultiPanelHero initialBanners={banners} />

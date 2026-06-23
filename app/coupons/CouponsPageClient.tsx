@@ -65,6 +65,8 @@ function CouponsContent() {
   const [showPopup, setShowPopup] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
   const [supabaseStores, setSupabaseStores] = useState<Store[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const couponsPerPage = 16;
   // console.log("coupons: ", coupons);
 
   useEffect(() => {
@@ -127,6 +129,15 @@ function CouponsContent() {
 
     setFilteredCoupons(filtered);
   }, [selectedCategory, selectedStore, coupons, stores]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, selectedStore]);
+
+  const totalPages = Math.ceil(filteredCoupons.length / couponsPerPage);
+  const startIndex = (currentPage - 1) * couponsPerPage;
+  const endIndex = startIndex + couponsPerPage;
+  const paginatedCoupons = filteredCoupons.slice(startIndex, endIndex);
 
   const formatDate = (timestamp: any) => {
     if (!timestamp) return null;
@@ -390,6 +401,14 @@ function CouponsContent() {
 
             {/* MAIN CONTENT */}
             <div className="lg:col-span-6">
+              <div className="mb-4 text-sm text-gray-600">
+                Showing{' '}
+                <span className="font-semibold text-[#0B453C]">
+                  {filteredCoupons.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredCoupons.length)}
+                </span>{' '}
+                of <span className="font-semibold text-[#0B453C]">{filteredCoupons.length}</span> coupons
+              </div>
+
               {/* Store Filter */}
               <div className="bg-white rounded-lg border border-gray-200 p-4 mb-6 shadow-sm">
                 <label htmlFor="store" className="block text-sm font-semibold text-gray-700 mb-2">
@@ -441,8 +460,9 @@ function CouponsContent() {
                   )}
                 </div>
               ) : (
+                <>
                 <div className="space-y-4">
-                  {filteredCoupons.map((coupon) => {
+                  {paginatedCoupons.map((coupon) => {
                     const isRevealed = coupon.id && revealedCoupons.has(coupon.id);
                     const isExpired = coupon.expiryDate && new Date(coupon.expiryDate) < new Date();
 
@@ -538,6 +558,85 @@ function CouponsContent() {
                     );
                   })}
                 </div>
+
+                {totalPages > 1 && (
+                  <div className="mt-8 flex flex-wrap justify-center items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentPage > 1) {
+                          setCurrentPage(currentPage - 1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      disabled={currentPage === 1}
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        currentPage === 1
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                          : 'bg-gradient-to-r from-[#0B453C] to-emerald-600 text-white hover:shadow-lg'
+                      }`}
+                    >
+                      Previous
+                    </button>
+
+                    <div className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        const showPage =
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1);
+
+                        if (!showPage) {
+                          if (page === currentPage - 2 || page === currentPage + 2) {
+                            return (
+                              <span key={page} className="px-2 py-2 text-sm text-gray-400">
+                                ...
+                              </span>
+                            );
+                          }
+                          return null;
+                        }
+
+                        return (
+                          <button
+                            key={page}
+                            type="button"
+                            onClick={() => {
+                              setCurrentPage(page);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            }}
+                            className={`min-w-[2.5rem] px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                              currentPage === page
+                                ? 'bg-gradient-to-r from-[#0B453C] to-emerald-600 text-white shadow-lg'
+                                : 'bg-white text-gray-700 hover:bg-green-50 border border-green-100'
+                            }`}
+                          >
+                            {page}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (currentPage < totalPages) {
+                          setCurrentPage(currentPage + 1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        }
+                      }}
+                      disabled={currentPage === totalPages}
+                      className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+                        currentPage === totalPages
+                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+                          : 'bg-gradient-to-r from-[#0B453C] to-emerald-600 text-white hover:shadow-lg'
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
+                )}
+                </>
               )}
             </div>
 

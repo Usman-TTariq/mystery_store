@@ -58,14 +58,15 @@ export const metadata: Metadata = {
     apple: '/Coupachu Icone-2.svg',
     shortcut: '/Coupachu Icone-2.svg',
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
   verification: {
     google: 'bJ8g82iFRwAnpdu7hp0nPwBUfnhXHb6Iuo2yRyn4yZI',
   },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({
@@ -74,9 +75,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="overflow-x-hidden max-w-full">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} ${barlow.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} ${barlow.variable} antialiased overflow-x-hidden w-full max-w-full`}
       >
         {children}
       </body>

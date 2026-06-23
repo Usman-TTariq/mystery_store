@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useEffect, useState } from 'react';
 import { getCategoryById, Category } from '@/lib/services/categoryService';
@@ -11,6 +11,7 @@ import Newsletter from '@/app/components/Newsletter';
 import CouponPopup from '@/app/components/CouponPopup';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import CategoryIcon from '@/app/components/CategoryIcon';
+import { categoryIconBgClass } from '@/lib/utils/categoryIcon';
 import { Tag, CheckCircle, Calendar, ExternalLink, ArrowRight, Info } from 'lucide-react';
 import Link from 'next/link';
 
@@ -226,15 +227,12 @@ export default function CategoryPageClient({ params }: { params: { id: string } 
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
           <div className="flex items-center gap-3 sm:gap-4 md:gap-6">
             <div
-              className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-md flex-shrink-0"
-              style={{ backgroundColor: category.backgroundColor }}
+              className={`w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-md flex-shrink-0 ${categoryIconBgClass}`}
             >
               <CategoryIcon
                 logoUrl={category.logoUrl}
                 name={category.name}
-                imgClassName="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain"
-                emojiClassName="text-2xl sm:text-4xl md:text-5xl leading-none"
-                fallbackClassName="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700"
+                imgClassName="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 object-contain brightness-0"
               />
             </div>
             <div className="min-w-0 flex-1">

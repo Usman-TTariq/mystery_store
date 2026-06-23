@@ -5,8 +5,8 @@ import { Facebook, Twitter, Instagram, Youtube, Linkedin, Phone, Mail, MapPin } 
 
 export default function Footer() {
   return (
-    <footer className="bg-gradient-to-br from-[#0a2f2a] to-[#042b26] text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <footer className="bg-gradient-to-br from-[#0a2f2a] to-[#042b26] text-white w-full max-w-full overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
         {/* Top Section */}
         <div className="py-12 border-b border-gray-700/50">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -91,10 +91,10 @@ export default function Footer() {
         </div>
 
         {/* Middle Section - Logo & Social Media */}
-        <div className="py-3 border-b border-gray-700/50">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="py-4 sm:py-3 border-b border-gray-700/50">
+          <div className="flex flex-col items-center gap-4 md:flex-row md:justify-between md:gap-6 w-full min-w-0">
             {/* Logo */}
-            <div className="flex items-center justify-center gap-0.5">
+            <div className="flex items-center justify-center gap-0.5 shrink-0">
               <img
                 src="/Coupachu Icone-2.svg"
                 alt="Coupachu Icon"
@@ -107,57 +107,57 @@ export default function Footer() {
             </div>
 
             {/* Social Media Icons */}
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-400 mr-2">Follow Us On :</span>
-              <a href="#" className="w-8 h-8 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition">
-                <Facebook className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-8 h-8 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition">
-                <Twitter className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-8 h-8 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition">
-                <Instagram className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-8 h-8 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition">
-                <Youtube className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-8 h-8 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition">
-                <Linkedin className="w-4 h-4" />
-              </a>
+            <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-center sm:justify-center md:justify-end w-full min-w-0">
+              <span className="text-sm text-gray-400 whitespace-nowrap">Follow Us On:</span>
+              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
+                <a href="#" aria-label="Facebook" className="w-9 h-9 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition shrink-0">
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <a href="#" aria-label="Twitter" className="w-9 h-9 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition shrink-0">
+                  <Twitter className="w-4 h-4" />
+                </a>
+                <a href="#" aria-label="Instagram" className="w-9 h-9 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition shrink-0">
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a href="#" aria-label="YouTube" className="w-9 h-9 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition shrink-0">
+                  <Youtube className="w-4 h-4" />
+                </a>
+                <a href="#" aria-label="LinkedIn" className="w-9 h-9 bg-[#0B453C] rounded-full flex items-center justify-center hover:bg-emerald-700 transition shrink-0">
+                  <Linkedin className="w-4 h-4" />
+                </a>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Bottom Section - Copyright & Payment Icons */}
-        <div className="py-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm text-gray-400">
+        <div className="py-6 w-full min-w-0">
+          <div className="flex flex-col items-center gap-4 text-center md:flex-row md:items-center md:justify-between md:text-left w-full min-w-0">
+            <p className="text-sm text-gray-400 px-1">
               Copyright © 2025 <span className="text-emerald-400 font-semibold">COUPACHU</span>. All rights reserved.
             </p>
 
             {/* Payment Method Icons */}
-            <div className="flex items-center gap-2">
-              <div className="px-3 py-1.5 bg-white rounded flex items-center justify-center">
-                <span className="text-xs font-bold text-blue-600">VISA</span>
+            <div className="flex flex-wrap items-center justify-center gap-2 w-full max-w-full md:justify-end md:w-auto">
+              <div className="px-2.5 sm:px-3 py-1.5 bg-white rounded flex items-center justify-center shrink-0">
+                <span className="text-[10px] sm:text-xs font-bold text-blue-600">VISA</span>
               </div>
-              <div className="px-3 py-1.5 bg-white rounded flex items-center justify-center">
-                <span className="text-xs font-bold">
-                  <span className="text-red-600">●●</span>
-                </span>
+              <div className="px-2.5 sm:px-3 py-1.5 bg-white rounded flex items-center justify-center shrink-0">
+                <span className="text-xs font-bold text-red-600">●●</span>
               </div>
-              <div className="px-3 py-1.5 bg-white rounded flex items-center justify-center">
-                <span className="text-xs font-bold text-blue-600">AMEX</span>
+              <div className="px-2.5 sm:px-3 py-1.5 bg-white rounded flex items-center justify-center shrink-0">
+                <span className="text-[10px] sm:text-xs font-bold text-blue-600">AMEX</span>
               </div>
-              <div className="px-3 py-1.5 bg-white rounded flex items-center justify-center">
+              <div className="px-2.5 sm:px-3 py-1.5 bg-white rounded flex items-center justify-center shrink-0">
                 <span className="text-xs font-bold text-emerald-600">₿</span>
               </div>
-              <div className="px-3 py-1.5 bg-white rounded flex items-center justify-center">
-                <span className="text-xs font-bold text-gray-700">GPay</span>
+              <div className="px-2.5 sm:px-3 py-1.5 bg-white rounded flex items-center justify-center shrink-0">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-700">GPay</span>
               </div>
-              <div className="px-3 py-1.5 bg-white rounded flex items-center justify-center">
-                <span className="text-xs font-bold text-gray-700">ApplePay</span>
+              <div className="px-2.5 sm:px-3 py-1.5 bg-white rounded flex items-center justify-center shrink-0">
+                <span className="text-[10px] sm:text-xs font-bold text-gray-700">ApplePay</span>
               </div>
-              <div className="px-3 py-1.5 bg-white rounded flex items-center justify-center">
+              <div className="px-2.5 sm:px-3 py-1.5 bg-white rounded flex items-center justify-center shrink-0">
                 <span className="text-xs font-bold text-purple-600">$</span>
               </div>
             </div>

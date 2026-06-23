@@ -268,7 +268,7 @@ export default function CouponsPage() {
     const idxDiscountType = indexOf('discounttype');
     const idxExpiryDate = indexOf('expirydate') !== -1 ? indexOf('expirydate') : indexOf('expiry');
     const idxGetCodeText = indexOf('getcodetext');
-    const idxGetDealText = indexOf('getdealtext') !== -1 ? indexOf('getdealtext') : indexOf('deal');
+    const idxGetDealText = indexOf('getdealtext');
     const idxIsActive = indexOf('isactive');
     const idxIsLatest = indexOf('islatest');
     const idxIsPopular = indexOf('ispopular');
@@ -279,9 +279,13 @@ export default function CouponsPage() {
     const idxStoreId = indexOf('store_id');
     const idxUrl = indexOf('url') !== -1 ? indexOf('url') : (indexOf('tracking link') !== -1 ? indexOf('tracking link') : indexOf('coupon url'));
 
-    // Either store_id or store name is required
-    if (idxStoreId === -1 && idxStoreName === -1) {
-      setUploadPreviewError('File must include either "store_id" or "Store Name" column.');
+    const missingRequired: string[] = [];
+    if (idxStoreName === -1) missingRequired.push('Store Name');
+    if (idxCouponType === -1) missingRequired.push('couponType');
+    if (idxCode === -1) missingRequired.push('code');
+    if (idxTitle === -1) missingRequired.push('title');
+    if (missingRequired.length) {
+      setUploadPreviewError(`Required columns missing: ${missingRequired.join(', ')}`);
       return;
     }
 
@@ -296,28 +300,49 @@ export default function CouponsPage() {
       // use cached stores list
     }
 
+    const validationErrors: string[] = [];
+
     const supabaseRows = dataRows
-      .map((row) => {
+      .map((row, index) => {
+        const rowNum = index + 2;
         const csvStoreId = idxStoreId !== -1 ? parseInt(row[idxStoreId] || '0', 10) || 0 : 0;
-        const storeName = idxStoreName !== -1 ? row[idxStoreName]?.toString().trim() : '';
+        const storeName = row[idxStoreName]?.toString().trim() || '';
+        const title = row[idxTitle]?.toString().trim() || '';
+        const couponTypeRaw = row[idxCouponType]?.toString().trim().toLowerCase() || '';
+        const couponType = couponTypeRaw === 'deal' ? 'deal' : couponTypeRaw === 'code' ? 'code' : '';
+        const code = row[idxCode]?.toString().trim() || '';
         const url = idxUrl !== -1 ? row[idxUrl]?.toString().trim() || null : null;
 
-        const resolved = resolveStoreForUpload(storeName, csvStoreId, url, storesList);
-        if (!resolved && !storeName) return null;
+        if (!storeName) {
+          validationErrors.push(`Row ${rowNum}: Store Name is required`);
+          return null;
+        }
+        if (!couponType) {
+          validationErrors.push(`Row ${rowNum}: couponType must be "code" or "deal"`);
+          return null;
+        }
+        if (!title) {
+          validationErrors.push(`Row ${rowNum}: title is required`);
+          return null;
+        }
+        if (couponType === 'code' && !code) {
+          validationErrors.push(`Row ${rowNum}: code is required when couponType is "code"`);
+          return null;
+        }
 
-        const title = idxTitle !== -1 ? row[idxTitle]?.toString().trim() || null : null;
+        const resolved = resolveStoreForUpload(storeName, csvStoreId, url, storesList);
         const description =
           idxDescription !== -1 && row[idxDescription]
             ? row[idxDescription]
-            : title || '';
+            : title;
 
         return {
           storeUuid: resolved?.uuid,
           store_id: resolved?.storeId ?? (csvStoreId || null),
           storeName: storeName || resolved?.name,
           title,
-          couponType: idxCouponType !== -1 ? (row[idxCouponType]?.toString().toLowerCase() === 'deal' ? 'deal' : 'code') : 'code',
-          code: idxCode !== -1 ? row[idxCode] || null : null,
+          couponType,
+          code: couponType === 'deal' ? null : code,
           categoryId: idxCategoryId !== -1 ? row[idxCategoryId] || null : null,
           currentUses: idxCurrentUses !== -1 ? parseInt(row[idxCurrentUses] || '0', 10) : 0,
           description,
@@ -333,14 +358,16 @@ export default function CouponsPage() {
           layoutPosition: idxLayoutPosition !== -1 ? (parseInt(row[idxLayoutPosition] || '0', 10) || null) : null,
           logoUrl: idxLogoUrl !== -1 ? row[idxLogoUrl] || null : null,
           maxUses: idxMaxUses !== -1 ? parseInt(row[idxMaxUses] || '0', 10) : 100,
-          url: idxUrl !== -1 ? row[idxUrl] || null : null,
+          url,
         };
       })
       .filter((row) => row !== null);
 
     if (!supabaseRows.length) {
       setUploadPreviewError(
-        'No valid rows to upload. Each row needs a "Store Name" or a store_id that can be resolved.'
+        validationErrors.length
+          ? validationErrors.slice(0, 8).join('\n')
+          : 'No valid rows to upload. Check required fields in each row.'
       );
       return;
     }
@@ -954,24 +981,18 @@ export default function CouponsPage() {
               </div>
 
               <div>
-                <div className="text-gray-700 text-sm font-semibold mb-2">Expected Columns for Coupons:</div>
-                <div className="text-gray-500 text-xs">
-                  <ul className="list-disc list-inside flex flex-wrap gap-2">
-                    <li>store_id</li>
-                    <li>couponType</li>
-                    <li>code</li>
-                    <li>description</li>
-                    <li>discount</li>
-                    <li>discountType</li>
-                    <li>expiryDate</li>
-                    <li>isActive</li>
-                    <li>isLatest</li>
-                    <li>isPopular</li>
-                    <li>logoUrl</li>
-                    <li>maxUses</li>
-                    <li>url</li>
+                <div className="text-gray-700 text-sm font-semibold mb-2">Required columns</div>
+                <div className="text-gray-700 text-xs mb-3">
+                  <ul className="list-disc list-inside space-y-0.5">
+                    <li><span className="font-semibold">Store Name</span> — store name (auto-created if missing)</li>
+                    <li><span className="font-semibold">couponType</span> — <code className="text-[11px]">code</code> or <code className="text-[11px]">deal</code></li>
+                    <li><span className="font-semibold">code</span> — required when couponType is <code className="text-[11px]">code</code>; leave empty for deals</li>
+                    <li><span className="font-semibold">title</span> — offer title shown on the coupon card</li>
                   </ul>
                 </div>
+                <p className="text-xs text-gray-500">
+                  All other columns (url, description, discount, expiryDate, etc.) are optional.
+                </p>
               </div>
 
               <div>

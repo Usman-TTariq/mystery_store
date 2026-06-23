@@ -16,7 +16,6 @@ export default function MultiPanelHero({ initialBanners }: { initialBanners?: (B
   });
 
   const yCenter = useTransform(scrollYProgress, [0, 1], ["0%", "-5%"]);
-  const scaleSides = useTransform(scrollYProgress, [0, 1], [1, 1.02]);
 
   useEffect(() => {
     if (initialBanners) return;
@@ -60,25 +59,24 @@ export default function MultiPanelHero({ initialBanners }: { initialBanners?: (B
   };
 
   return (
-    <div ref={containerRef} className="relative w-full overflow-hidden bg-gray-50 py-8 lg:py-2 lg:scale-90 lg:origin-center">
-      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div ref={containerRef} className="relative w-full max-w-full overflow-hidden bg-gray-50 py-8 lg:py-2 lg:scale-90 lg:origin-center">
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 w-full min-w-0">
         {/* 3 Equal Columns (1-1-1) - HEIGHT INCREASED to 750px */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-auto md:h-[750px]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-auto md:h-[750px] w-full min-w-0">
 
           {/* LEFT COLUMN (Tall) - Slot 1 */}
           <motion.div
-            className="md:col-span-1 relative h-[400px] md:h-full group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+            className="md:col-span-1 relative h-[400px] md:h-full group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 w-full min-w-0"
             initial="hidden"
             animate="visible"
             custom={0}
             variants={fadeInUp}
-            style={{ scale: scaleSides }}
           >
             <Link href="/stores" className="block w-full h-full relative">
               <img
                 src={getImage(leftBanner, 0)}
                 alt="Featured Deal"
-                className="w-full h-full object-fill rounded-xl transition-transform duration-700 group-hover:scale-105"
+                className="w-full h-full object-cover rounded-xl transition-transform duration-700 group-hover:scale-105"
                 onError={(e) => { (e.target as HTMLImageElement).src = defaultImages[0]; }}
               />
             </Link>
@@ -100,7 +98,7 @@ export default function MultiPanelHero({ initialBanners }: { initialBanners?: (B
                 <img
                   src={getImage(centerTopBanner, 1)}
                   alt="Trending"
-                  className="w-full h-full object-fill rounded-xl transition-transform duration-700 group-hover:scale-105"
+                  className="w-full h-full object-cover rounded-xl transition-transform duration-700 group-hover:scale-105"
                   onError={(e) => { (e.target as HTMLImageElement).src = defaultImages[1]; }}
                 />
               </Link>
@@ -118,7 +116,7 @@ export default function MultiPanelHero({ initialBanners }: { initialBanners?: (B
                 <img
                   src={getImage(centerBottomBanner, 2)}
                   alt="Editor's Pick"
-                  className="w-full h-full object-fill rounded-xl transition-transform duration-700 group-hover:scale-105"
+                  className="w-full h-full object-cover rounded-xl transition-transform duration-700 group-hover:scale-105"
                   onError={(e) => { (e.target as HTMLImageElement).src = defaultImages[2]; }}
                 />
               </Link>
@@ -128,18 +126,17 @@ export default function MultiPanelHero({ initialBanners }: { initialBanners?: (B
 
           {/* RIGHT COLUMN (Tall) - Slot 4 */}
           <motion.div
-            className="md:col-span-1 relative h-[400px] md:h-full group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500"
+            className="md:col-span-1 relative h-[400px] md:h-full group rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-500 w-full min-w-0"
             initial="hidden"
             animate="visible"
             custom={3}
             variants={fadeInUp}
-            style={{ scale: scaleSides }}
           >
             <Link href="/events" className="block w-full h-full relative">
               <img
                 src={getImage(rightBanner, 3)}
                 alt="Special Offer"
-                className="w-full h-full object-fill rounded-xl transition-transform duration-700 group-hover:scale-105"
+                className="w-full h-full object-cover rounded-xl transition-transform duration-700 group-hover:scale-105"
                 onError={(e) => { (e.target as HTMLImageElement).src = defaultImages[3]; }}
               />
             </Link>

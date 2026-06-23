@@ -204,10 +204,7 @@ export async function POST(req: Request) {
     const firstLetter = categoryName.charAt(0).toUpperCase();
     // URL encode the SVG to avoid base64 issues
     const svgContent = `<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100">
-      <!-- Inner light gray circle -->
-      <circle cx="50" cy="50" r="38" fill="#E5E7EB"/>
-      <!-- Dark gray letter -->
-      <text x="50" y="50" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#374151" text-anchor="middle" dominant-baseline="central">${firstLetter}</text>
+      <text x="50" y="54" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#000000" text-anchor="middle" dominant-baseline="central">${firstLetter}</text>
     </svg>`;
     const svgIcon = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgContent)}`;
 

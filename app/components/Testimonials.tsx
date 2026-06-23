@@ -105,7 +105,7 @@ export default function Testimonials() {
     }, [isHovered]);
 
     return (
-        <section className="py-20 bg-gradient-to-br from-green-50 via-white to-emerald-50 relative overflow-hidden">
+        <section className="py-20 bg-gradient-to-br from-green-50 via-white to-emerald-50 relative overflow-hidden w-full max-w-full">
             {/* Decorative Background Elements */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-20 left-10 w-72 h-72 bg-gradient-to-br from-[#0B453C]/10 to-[#0f5c4e]/5 rounded-full blur-3xl"></div>
@@ -238,52 +238,46 @@ export default function Testimonials() {
                     {/* Mobile: Single Card */}
                     <div className="md:hidden">
                         <div
-                            className="relative h-[450px] flex items-center justify-center px-4"
+                            className="relative min-h-0"
                             onMouseEnter={() => setIsHovered(true)}
                             onMouseLeave={() => setIsHovered(false)}
                         >
                             <AnimatePresence mode="wait">
                                 <motion.div
                                     key={currentIndex}
-                                    initial={{ opacity: 0, x: 100 }}
+                                    initial={{ opacity: 0, x: 40 }}
                                     animate={{ opacity: 1, x: 0 }}
-                                    exit={{ opacity: 0, x: -100 }}
+                                    exit={{ opacity: 0, x: -40 }}
                                     transition={{
-                                        duration: 0.5,
-                                        ease: "easeInOut"
+                                        duration: 0.35,
+                                        ease: 'easeInOut',
                                     }}
-                                    className="w-full max-w-md"
+                                    className="w-full"
                                 >
-                                    {/* Card */}
-                                    <div className="relative bg-white rounded-2xl p-6 shadow-2xl border border-gray-100">
-                                        {/* Gradient Overlay */}
+                                    <div className="relative bg-white rounded-2xl p-6 shadow-xl border border-gray-100">
                                         <div className="absolute inset-0 bg-gradient-to-br from-green-50/50 via-transparent to-emerald-50/30 rounded-2xl pointer-events-none"></div>
 
-                                        {/* Quote Icon */}
                                         <div className="relative mb-4">
                                             <div className="w-12 h-12 bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] rounded-xl flex items-center justify-center shadow-lg">
                                                 <Quote className="w-6 h-6 text-white" strokeWidth={2} />
                                             </div>
                                         </div>
 
-                                        {/* Rating */}
                                         <div className="flex gap-1 mb-4 relative">
                                             {[...Array(currentTestimonial.rating)].map((_, i) => (
                                                 <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
                                             ))}
                                         </div>
 
-                                        {/* Testimonial Text */}
                                         <p className="text-gray-700 text-base leading-relaxed mb-6 relative">
-                                            "{currentTestimonial.text}"
+                                            &ldquo;{currentTestimonial.text}&rdquo;
                                         </p>
 
-                                        {/* Author */}
                                         <div className="flex items-center gap-4 relative">
-                                            <div className="w-14 h-14 bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] rounded-full flex items-center justify-center text-2xl shadow-md">
+                                            <div className="w-14 h-14 bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] rounded-full flex items-center justify-center text-2xl shadow-md shrink-0">
                                                 {currentTestimonial.avatar}
                                             </div>
-                                            <div>
+                                            <div className="min-w-0">
                                                 <h4 className="font-bold text-gray-900 text-lg">
                                                     {currentTestimonial.name}
                                                 </h4>
@@ -293,33 +287,51 @@ export default function Testimonials() {
                                             </div>
                                         </div>
 
-                                        {/* Decorative Corner */}
-                                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#0B453C]/10 to-transparent rounded-bl-full rounded-tr-2xl"></div>
+                                        <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-[#0B453C]/10 to-transparent rounded-bl-full rounded-tr-2xl pointer-events-none"></div>
                                     </div>
                                 </motion.div>
                             </AnimatePresence>
 
-                            {/* Navigation Buttons */}
-                            <button
-                                onClick={prevTestimonial}
-                                className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all duration-300 border border-gray-200 z-20"
-                                aria-label="Previous testimonial"
-                            >
-                                <ChevronLeft className="w-5 h-5 text-gray-600" />
-                            </button>
+                            <div className="mt-6 flex items-center justify-between gap-3">
+                                <button
+                                    type="button"
+                                    onClick={prevTestimonial}
+                                    className="w-11 h-11 shrink-0 bg-white rounded-full shadow-md flex items-center justify-center border-2 border-[#0B453C]/20 hover:border-[#0B453C] transition-colors"
+                                    aria-label="Previous testimonial"
+                                >
+                                    <ChevronLeft className="w-5 h-5 text-[#0B453C]" />
+                                </button>
 
-                            <button
-                                onClick={nextTestimonial}
-                                className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] rounded-full shadow-lg flex items-center justify-center hover:shadow-xl transition-all duration-300 z-20"
-                                aria-label="Next testimonial"
-                            >
-                                <ChevronRight className="w-5 h-5 text-white" />
-                            </button>
+                                <div className="flex flex-1 justify-center gap-2">
+                                    {testimonials.map((_, index) => (
+                                        <button
+                                            key={index}
+                                            type="button"
+                                            onClick={() => setCurrentIndex(index)}
+                                            className={`transition-all duration-300 rounded-full ${
+                                                index === currentIndex
+                                                    ? 'w-8 h-2 bg-gradient-to-r from-[#0B453C] to-[#0f5c4e]'
+                                                    : 'w-2 h-2 bg-gray-300'
+                                            }`}
+                                            aria-label={`Go to testimonial ${index + 1}`}
+                                        />
+                                    ))}
+                                </div>
+
+                                <button
+                                    type="button"
+                                    onClick={nextTestimonial}
+                                    className="w-11 h-11 shrink-0 bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] rounded-full shadow-md flex items-center justify-center hover:shadow-lg transition-shadow"
+                                    aria-label="Next testimonial"
+                                >
+                                    <ChevronRight className="w-5 h-5 text-white" />
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    {/* Dots Indicator */}
-                    <div className="flex justify-center gap-2 mt-8">
+                    {/* Dots Indicator — desktop only */}
+                    <div className="hidden md:flex justify-center gap-2 mt-8">
                         {testimonials.map((_, index) => (
                             <button
                                 key={index}

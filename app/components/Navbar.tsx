@@ -14,6 +14,7 @@ import {
   MapPin, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube
 } from "lucide-react";
 import CategoryIcon from "@/app/components/CategoryIcon";
+import { categoryIconBgClass } from "@/lib/utils/categoryIcon";
 
 // Helper function to get favicon URL from store data
 const getStoreFaviconUrl = (store: Store): string => {
@@ -180,8 +181,8 @@ export default function Navbar() {
       <div className="col-span-3 grid grid-cols-2 gap-x-6 gap-y-2">
         {categories.slice(0, 10).map((cat) => (
           <Link key={cat.id} href={`/categories/${cat.id}`} className="flex items-center gap-2 group/item p-1.5 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] text-white font-bold overflow-hidden" style={{ backgroundColor: cat.backgroundColor || '#ccc' }}>
-              <CategoryIcon logoUrl={cat.logoUrl} name={cat.name} imgClassName="w-4 h-4 object-contain" emojiClassName="text-sm leading-none" fallbackClassName="text-[10px] font-bold" />
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden ${categoryIconBgClass}`}>
+              <CategoryIcon logoUrl={cat.logoUrl} name={cat.name} imgClassName="w-4 h-4 object-contain brightness-0" />
             </div>
             <span className="text-sm text-gray-700 font-medium group-hover/item:text-[#0B453C] transition-colors">{cat.name}</span>
           </Link>
@@ -273,12 +274,26 @@ export default function Navbar() {
     },
   ];
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mobileMenuOpen]);
+
+  const closeMobileMenu = () => setMobileMenuOpen(false);
+
   return (
     <>
+      <header className="w-full max-w-full">
 
       {/* 1. TOP BAR (Teal - Balances Size) */}
-      <div className="bg-[#042b26] text-white text-[11px] py-2 border-b border-white/5 relative z-50 font-sans">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-full">
+      <div className="bg-[#042b26] text-white text-[11px] py-2 border-b border-white/5 relative z-50 font-sans w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-full min-w-0">
           <div className="hidden md:flex items-center gap-5 opacity-90">
             <Link href="/stores" className="flex items-center gap-1.5 hover:text-emerald-400 transition-colors">
               <MapPin className="w-3.5 h-3.5" /> <span className="font-semibold tracking-wide">Find a Store</span>
@@ -288,14 +303,14 @@ export default function Navbar() {
             </div>
           </div>
 
-          <div className="flex-1 flex justify-center items-center gap-3">
-            <button onClick={() => setPromoIndex((prev) => (prev - 1 + promotions.length) % promotions.length)} className="hover:text-emerald-400 transition-colors"><ChevronLeft className="w-4 h-4" /></button>
+          <div className="flex-1 flex justify-center items-center gap-2 sm:gap-3 min-w-0 px-1">
+            <button onClick={() => setPromoIndex((prev) => (prev - 1 + promotions.length) % promotions.length)} className="hover:text-emerald-400 transition-colors shrink-0"><ChevronLeft className="w-4 h-4" /></button>
             <AnimatePresence mode="wait">
-              <motion.span key={promoIndex} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="font-semibold tracking-wider text-center min-w-[200px]">
+              <motion.span key={promoIndex} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -5 }} className="font-semibold tracking-wider text-center min-w-0 max-w-[52vw] sm:max-w-none truncate text-[10px] sm:text-[11px]">
                 {promotions[promoIndex]}
               </motion.span>
             </AnimatePresence>
-            <button onClick={() => setPromoIndex((prev) => (prev + 1) % promotions.length)} className="hover:text-emerald-400 transition-colors"><ChevronRight className="w-4 h-4" /></button>
+            <button onClick={() => setPromoIndex((prev) => (prev + 1) % promotions.length)} className="hover:text-emerald-400 transition-colors shrink-0"><ChevronRight className="w-4 h-4" /></button>
           </div>
 
           <div className="hidden md:flex items-center gap-3 opacity-90">
@@ -308,8 +323,8 @@ export default function Navbar() {
       </div>
 
       {/* 2. MIDDLE BAR (Teal - Compact) */}
-      <div className="bg-[#0B453C] py-2 border-b border-[#0f5c4e] relative z-[110] font-sans">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-[#0B453C] py-2 border-b border-[#0f5c4e] relative z-[110] font-sans w-full overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
           <div className="flex items-center justify-between gap-4 lg:gap-8">
 
             <Link href="/" className="flex-shrink-0 flex items-center gap-0.5">
@@ -399,15 +414,12 @@ export default function Navbar() {
                           className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
                         >
                           <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
-                            style={{ backgroundColor: category.backgroundColor || '#ccc' }}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${categoryIconBgClass}`}
                           >
                             <CategoryIcon
                               logoUrl={category.logoUrl}
                               name={category.name}
-                              imgClassName="w-6 h-6 object-contain"
-                              emojiClassName="text-xl leading-none"
-                              fallbackClassName="text-sm font-bold"
+                              imgClassName="w-6 h-6 object-contain brightness-0"
                             />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -486,25 +498,109 @@ export default function Navbar() {
           </div>
         </div>
       </div>
+      </header>
 
-      {/* Mobile Menu Overlay */}
+      {/* Mobile Menu — full screen overlay */}
       <AnimatePresence>
         {mobileMenuOpen && (
-          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="lg:hidden fixed inset-x-0 top-[140px] z-50 bg-[#0B453C] border-t border-white/10 shadow-xl overflow-hidden">
-            <div className="px-4 py-6 space-y-4 max-h-[80vh] overflow-y-auto text-white">
-              <div className="mb-6">
-                <form onSubmit={handleSearch} className="flex w-full bg-white/10 backdrop-blur-sm rounded-full p-1 border border-white/20">
-                  <input type="text" placeholder="Search products..." className="flex-1 px-4 py-2 bg-transparent outline-none text-white placeholder:text-gray-300 text-sm" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
-                  <button type="submit" className="bg-[#0B453C] p-2 rounded-full text-white"><Search className="w-4 h-4" /></button>
-                </form>
+          <motion.div
+            initial={{ opacity: 0, x: '100%' }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: '100%' }}
+            transition={{ type: 'tween', duration: 0.25 }}
+            className="lg:hidden fixed inset-0 z-[200] flex min-h-[100dvh] flex-col bg-[#0B453C] text-white"
+          >
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+              <Link href="/" onClick={closeMobileMenu} className="flex items-center gap-0.5">
+                <img
+                  src="/Coupachu Icone-2.svg"
+                  alt="Coupachu Icon"
+                  className="h-10 w-10 object-contain -mr-1"
+                />
+                <span className="mt-3 text-2xl font-bold tracking-tight">
+                  <span className="text-[#CD3D1C]">o</span>
+                  <span className="text-white">upachu</span>
+                </span>
+              </Link>
+
+              <div className="flex items-center gap-4">
+                <Link href="/favorites" onClick={closeMobileMenu} className="relative hover:text-emerald-300 transition-colors">
+                  <Heart className="h-5 w-5" />
+                  {favoritesCount > 0 && (
+                    <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-emerald-400" />
+                  )}
+                </Link>
+                <Link href="/profile" onClick={closeMobileMenu} className="hover:text-emerald-300 transition-colors">
+                  <User className="h-5 w-5" />
+                </Link>
+                <button
+                  type="button"
+                  onClick={closeMobileMenu}
+                  className="rounded-lg border border-white/30 p-1.5 hover:bg-white/10 transition-colors"
+                  aria-label="Close menu"
+                >
+                  <X className="h-6 w-6" />
+                </button>
               </div>
-              {navLinks.map((link) => (
-                <Link key={link.name} href={link.path} onClick={() => setMobileMenuOpen(false)} className="block py-2 border-b border-white/10 font-medium text-sm">{link.name}</Link>
-              ))}
-              <div className="pt-2 flex flex-col gap-2">
-                <Link href="/submit-coupon" onClick={() => setMobileMenuOpen(false)} className="py-2 text-xs text-gray-300">Submit Coupon</Link>
-                <Link href="/support" onClick={() => setMobileMenuOpen(false)} className="py-2 text-xs text-gray-300">Support & FAQs</Link>
-              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-4 py-6">
+              <form
+                onSubmit={(e) => {
+                  handleSearch(e);
+                  closeMobileMenu();
+                }}
+                className="mb-6 flex w-full items-center rounded-full border border-white/25 bg-white/10 p-1"
+              >
+                <input
+                  type="text"
+                  placeholder="Search stores, coupons..."
+                  className="flex-1 bg-transparent px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="mr-1 rounded-full bg-white/15 p-2.5 text-white hover:bg-white/25 transition-colors"
+                  aria-label="Search"
+                >
+                  <Search className="h-4 w-4" />
+                </button>
+              </form>
+
+              <nav className="space-y-1">
+                {navLinks.map((link) => (
+                  <Link
+                    key={link.name}
+                    href={link.path}
+                    onClick={closeMobileMenu}
+                    className={`block rounded-lg px-3 py-3 text-base font-medium transition-colors ${
+                      pathname === link.path
+                        ? 'bg-white/10 text-white'
+                        : 'text-white/90 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    {link.name}
+                  </Link>
+                ))}
+
+                <div className="my-4 border-t border-white/10" />
+
+                <Link
+                  href="/submit-coupon"
+                  onClick={closeMobileMenu}
+                  className="block rounded-lg px-3 py-3 text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  Submit Coupon
+                </Link>
+                <Link
+                  href="/support"
+                  onClick={closeMobileMenu}
+                  className="block rounded-lg px-3 py-3 text-sm font-medium text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+                >
+                  Support & FAQs
+                </Link>
+              </nav>
             </div>
           </motion.div>
         )}

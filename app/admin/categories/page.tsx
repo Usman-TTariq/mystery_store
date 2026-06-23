@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { getCategories, createCategory, updateCategory, deleteCategory, Category } from '@/lib/services/categoryService';
+import CategoryIcon from '@/app/components/CategoryIcon';
+import { categoryIconBgClass } from '@/lib/utils/categoryIcon';
 
 // Color names with their hex codes
 const COLOR_OPTIONS = [
-  { name: 'Pink', value: '#FF6B9D' },
+  { name: 'Mint (Default)', value: '#f0fdf4' },
   { name: 'Red', value: '#FF0000' },
   { name: 'Orange', value: '#FF8C00' },
   { name: 'Yellow', value: '#FFD700' },
@@ -36,7 +38,7 @@ export default function CategoriesPage() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [logoUrl, setLogoUrl] = useState<string>('');
-  const [backgroundColor, setBackgroundColor] = useState('#FF6B9D');
+  const [backgroundColor, setBackgroundColor] = useState('#f0fdf4');
   const [extractingLogo, setExtractingLogo] = useState(false);
   const [fileInputKey, setFileInputKey] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -373,28 +375,13 @@ export default function CategoriesPage() {
                 >
                   <div className="flex items-center gap-4 mb-4">
                     <div
-                      className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center flex-shrink-0 relative overflow-hidden"
-                      style={{ backgroundColor: category.backgroundColor }}
+                      className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center flex-shrink-0 ${categoryIconBgClass}`}
                     >
-                      {category.logoUrl ? (
-                        <img
-                          src={category.logoUrl}
-                          alt={category.name}
-                          className="w-12 h-12 sm:w-14 sm:h-14 object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full rounded-full flex items-center justify-center" style={{ backgroundColor: category.backgroundColor }}>
-                          <div className="w-3/4 h-3/4 rounded-full bg-gray-200 flex items-center justify-center">
-                            <span className="text-xl sm:text-2xl font-bold text-gray-700">
-                              {category.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                      )}
+                      <CategoryIcon
+                        logoUrl={category.logoUrl}
+                        name={category.name}
+                        imgClassName="w-10 h-10 sm:w-12 sm:h-12 object-contain brightness-0"
+                      />
                     </div>
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-gray-800">{category.name}</h3>

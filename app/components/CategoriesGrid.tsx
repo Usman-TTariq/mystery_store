@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getCategories, Category } from '@/lib/services/categoryService';
 import Link from 'next/link';
 import CategoryIcon from '@/app/components/CategoryIcon';
+import { categoryIconBgClass } from '@/lib/utils/categoryIcon';
 
 export default function CategoriesGrid() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -96,7 +97,7 @@ export default function CategoriesGrid() {
                 const row3 = chunk.slice(6, 9);
 
                 return (
-                  <div key={chunkIndex} className="flex-shrink-0 w-[calc(100vw-2rem)] max-w-[400px] snap-center">
+                  <div key={chunkIndex} className="flex-shrink-0 w-full max-w-[400px] snap-center">
                     <div className="grid grid-rows-3 gap-3">
                       {/* Row 1 */}
                       <div className="grid grid-cols-3 gap-3">
@@ -107,19 +108,14 @@ export default function CategoriesGrid() {
                             className="flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 transition-all duration-300 group"
                           >
                             <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110"
-                              style={{ backgroundColor: category.backgroundColor }}
+                              className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110 ${categoryIconBgClass}`}
                             >
-                              <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl"
-                                style={{ backgroundColor: category.backgroundColor }}
-                              ></div>
+                              <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl ${categoryIconBgClass}`} />
 
                               <CategoryIcon
                                 logoUrl={category.logoUrl}
                                 name={category.name}
-                                imgClassName="w-8 h-8 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                                emojiClassName="text-2xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                                fallbackClassName="text-base font-bold text-gray-700 relative z-10"
+                                imgClassName="w-8 h-8 object-contain relative z-10 brightness-0 group-hover:rotate-12 transition-transform duration-300"
                               />
                             </div>
                             <span className="text-xs font-semibold text-gray-800 group-hover:text-[#0B453C] transition-colors duration-300 lowercase text-center line-clamp-2">
@@ -138,19 +134,14 @@ export default function CategoriesGrid() {
                             className="flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 transition-all duration-300 group"
                           >
                             <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110"
-                              style={{ backgroundColor: category.backgroundColor }}
+                              className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110 ${categoryIconBgClass}`}
                             >
-                              <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl"
-                                style={{ backgroundColor: category.backgroundColor }}
-                              ></div>
+                              <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl ${categoryIconBgClass}`} />
 
                               <CategoryIcon
                                 logoUrl={category.logoUrl}
                                 name={category.name}
-                                imgClassName="w-8 h-8 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                                emojiClassName="text-2xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                                fallbackClassName="text-base font-bold text-gray-700 relative z-10"
+                                imgClassName="w-8 h-8 object-contain relative z-10 brightness-0 group-hover:rotate-12 transition-transform duration-300"
                               />
                             </div>
                             <span className="text-xs font-semibold text-gray-800 group-hover:text-[#0B453C] transition-colors duration-300 lowercase text-center line-clamp-2">
@@ -169,19 +160,14 @@ export default function CategoriesGrid() {
                             className="flex flex-col items-center gap-2 p-2 rounded-xl hover:bg-gradient-to-br hover:from-green-50 hover:to-emerald-50 transition-all duration-300 group"
                           >
                             <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110"
-                              style={{ backgroundColor: category.backgroundColor }}
+                              className={`w-12 h-12 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110 ${categoryIconBgClass}`}
                             >
-                              <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl"
-                                style={{ backgroundColor: category.backgroundColor }}
-                              ></div>
+                              <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl ${categoryIconBgClass}`} />
 
                               <CategoryIcon
                                 logoUrl={category.logoUrl}
                                 name={category.name}
-                                imgClassName="w-8 h-8 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                                emojiClassName="text-2xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                                fallbackClassName="text-base font-bold text-gray-700 relative z-10"
+                                imgClassName="w-8 h-8 object-contain relative z-10 brightness-0 group-hover:rotate-12 transition-transform duration-300"
                               />
                             </div>
                             <span className="text-xs font-semibold text-gray-800 group-hover:text-[#0B453C] transition-colors duration-300 lowercase text-center line-clamp-2">
@@ -206,20 +192,14 @@ export default function CategoriesGrid() {
                 className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 rounded-xl hover:bg-gradient-to-r hover:from-green-50 hover:to-emerald-50 transition-all duration-300 group transform hover:scale-105 hover:shadow-lg"
               >
                 <div
-                  className="w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110"
-                  style={{ backgroundColor: category.backgroundColor }}
+                  className={`w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-full flex items-center justify-center shadow-md group-hover:shadow-xl transition-all duration-300 relative overflow-hidden group-hover:scale-110 ${categoryIconBgClass}`}
                 >
-                  {/* Glow effect */}
-                  <div className="absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl"
-                    style={{ backgroundColor: category.backgroundColor }}
-                  ></div>
+                  <div className={`absolute inset-0 rounded-full opacity-0 group-hover:opacity-30 transition-opacity duration-300 blur-xl ${categoryIconBgClass}`} />
 
                   <CategoryIcon
                     logoUrl={category.logoUrl}
                     name={category.name}
-                    imgClassName="w-9 h-9 sm:w-11 sm:h-11 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                    emojiClassName="text-3xl sm:text-4xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
-                    fallbackClassName="text-lg sm:text-xl font-bold text-gray-700 relative z-10"
+                    imgClassName="w-9 h-9 sm:w-11 sm:h-11 object-contain relative z-10 brightness-0 group-hover:rotate-12 transition-transform duration-300"
                   />
                 </div>
                 <span className="text-sm sm:text-base font-semibold text-gray-800 group-hover:text-[#0B453C] transition-all duration-300 lowercase flex-1 group-hover:translate-x-1">

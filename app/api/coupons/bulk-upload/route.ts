@@ -185,7 +185,7 @@ function mapCouponRow(
     store_id: storeUuid,
     discount_value: row.discount ?? 0,
     discount_type: row.discountType || 'percentage',
-    description: row.description || '',
+    description: row.description?.trim() || title,
     status: row.isActive !== false ? 'active' : 'inactive',
     max_uses: row.maxUses ?? 0,
     current_uses: row.currentUses ?? 0,
@@ -245,6 +245,34 @@ export async function POST(req: Request) {
     for (let index = 0; index < rows.length; index++) {
       const row = rows[index];
       const rowNum = index + 1;
+
+      const storeName = row.storeName?.trim() || '';
+      const title = row.title?.trim() || '';
+      const couponTypeRaw = row.couponType?.trim().toLowerCase() || '';
+      const couponType = couponTypeRaw === 'deal' ? 'deal' : couponTypeRaw === 'code' ? 'code' : '';
+      const code = row.code?.trim() || '';
+
+      if (!storeName) {
+        skipped += 1;
+        errors.push(`Row ${rowNum}: Store Name is required`);
+        continue;
+      }
+      if (!couponType) {
+        skipped += 1;
+        errors.push(`Row ${rowNum}: couponType must be "code" or "deal"`);
+        continue;
+      }
+      if (!title) {
+        skipped += 1;
+        errors.push(`Row ${rowNum}: title is required`);
+        continue;
+      }
+      if (couponType === 'code' && !code) {
+        skipped += 1;
+        errors.push(`Row ${rowNum}: code is required when couponType is "code"`);
+        continue;
+      }
+
       let resolved = resolveStore(row, storesList);
 
       if (!resolved) {
@@ -297,7 +325,7 @@ export async function POST(req: Request) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: `No valid coupon rows after store resolution. ${storesList.length} store(s) in database — upload stores first or fix Store Name / store_id in CSV.`,
+          error: `No valid coupon rows. Fix required fields (Store Name, couponType, code, title) or check store names.`,
           uploaded: 0,
           skipped,
           errors,
