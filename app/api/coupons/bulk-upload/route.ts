@@ -2,6 +2,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 
 interface IncomingCouponRow {
   store_id?: number | string | null;
+  storeUuid?: string | null;
   code?: string | null;
   title?: string | null;
   categoryId?: string | null;
@@ -28,6 +29,8 @@ interface StoreLookup {
   id: string;
   storeId?: number;
   name: string;
+  slug?: string;
+  websiteUrl?: string;
 }
 
 function loadStoresFromDb(raw: Record<string, unknown>[]): StoreLookup[] {
@@ -35,31 +38,78 @@ function loadStoresFromDb(raw: Record<string, unknown>[]): StoreLookup[] {
     id: String(item.id),
     storeId: item.store_id != null ? Number(item.store_id) : undefined,
     name: String(item.store_name || ''),
+    slug: item.slug ? String(item.slug) : undefined,
+    websiteUrl: item.website_url ? String(item.website_url) : undefined,
   }));
+}
+
+function normalizeStoreName(value: string): string {
+  return value.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^\w\s.-]/g, '');
+}
+
+function hostnameFromUrl(url: string | null | undefined): string | null {
+  if (!url?.trim()) return null;
+  try {
+    return new URL(url.trim()).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return null;
+  }
 }
 
 function resolveStore(
   row: IncomingCouponRow,
   storesList: StoreLookup[]
 ): { uuid: string; storeName: string } | null {
+  if (row.storeUuid?.trim()) {
+    const uuid = row.storeUuid.trim();
+    const byUuid = storesList.find((s) => s.id === uuid);
+    if (byUuid) {
+      return { uuid: byUuid.id, storeName: byUuid.name };
+    }
+  }
+
+  const storeName = row.storeName?.trim();
+
+  if (storeName) {
+    const needle = normalizeStoreName(storeName);
+    const exact = storesList.find((s) => normalizeStoreName(s.name) === needle);
+    if (exact) {
+      return { uuid: exact.id, storeName: exact.name };
+    }
+
+    const partial = storesList.find((s) => {
+      const hay = normalizeStoreName(s.name);
+      return hay.includes(needle) || needle.includes(hay);
+    });
+    if (partial) {
+      return { uuid: partial.id, storeName: partial.name };
+    }
+  }
+
   if (row.store_id != null && row.store_id !== '') {
-    const num =
-      typeof row.store_id === 'number'
-        ? row.store_id
-        : parseInt(String(row.store_id), 10);
+    const raw = String(row.store_id).trim();
+    const uuidMatch = storesList.find((s) => s.id === raw);
+    if (uuidMatch) {
+      return { uuid: uuidMatch.id, storeName: uuidMatch.name };
+    }
+
+    const num = typeof row.store_id === 'number' ? row.store_id : parseInt(raw, 10);
     if (!Number.isNaN(num)) {
-      const match = storesList.find((s) => s.storeId === num);
-      if (match) {
-        return { uuid: match.id, storeName: match.name };
+      const bySerial = storesList.find((s) => s.storeId === num);
+      if (bySerial) {
+        return { uuid: bySerial.id, storeName: bySerial.name };
       }
     }
   }
 
-  if (row.storeName?.trim()) {
-    const needle = row.storeName.trim().toLowerCase();
-    const match = storesList.find((s) => s.name?.toLowerCase() === needle);
-    if (match) {
-      return { uuid: match.id, storeName: match.name };
+  const rowHost = hostnameFromUrl(row.url);
+  if (rowHost) {
+    const byUrl = storesList.find((s) => {
+      const storeHost = hostnameFromUrl(s.websiteUrl);
+      return storeHost === rowHost;
+    });
+    if (byUrl) {
+      return { uuid: byUrl.id, storeName: byUrl.name };
     }
   }
 
@@ -119,7 +169,7 @@ export async function POST(req: Request) {
 
     const { data: storeData, error: storeError } = await supabase
       .from('stores')
-      .select('id, store_id, store_name');
+      .select('id, store_id, store_name, slug, website_url');
 
     if (storeError) {
       console.error('Failed to load stores for coupon bulk upload:', storeError);
@@ -140,7 +190,10 @@ export async function POST(req: Request) {
 
       if (!resolved) {
         skipped += 1;
-        const idHint = row.store_id != null ? `store_id ${row.store_id}` : `Store Name "${row.storeName || ''}"`;
+        const parts: string[] = [];
+        if (row.storeName?.trim()) parts.push(`name "${row.storeName.trim()}"`);
+        if (row.store_id != null && row.store_id !== '') parts.push(`store_id ${row.store_id}`);
+        const idHint = parts.length ? parts.join(', ') : 'no store identifier';
         errors.push(`Row ${rowNum}: store not found (${idHint})`);
         return;
       }
@@ -152,10 +205,11 @@ export async function POST(req: Request) {
       return new Response(
         JSON.stringify({
           success: false,
-          error: 'No valid coupon rows after store resolution.',
+          error: `No valid coupon rows after store resolution. ${storesList.length} store(s) in database — upload stores first or fix Store Name / store_id in CSV.`,
           uploaded: 0,
           skipped,
           errors,
+          storeCount: storesList.length,
         }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );

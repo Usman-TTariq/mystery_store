@@ -162,14 +162,20 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
     setSelectedCoupon(null);
   };
 
-  const formatDate = (timestamp: any) => {
+  const toJsDate = (timestamp: unknown): Date | null => {
     if (!timestamp) return null;
     try {
-      const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-      return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    } catch (error) {
+      const value = timestamp as { toDate?: () => Date };
+      return value.toDate ? value.toDate() : new Date(timestamp as string);
+    } catch {
       return null;
     }
+  };
+
+  const formatDate = (timestamp: unknown) => {
+    const date = toJsDate(timestamp);
+    if (!date) return null;
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
   const getLastTwoDigits = (coupon: Coupon): string | null => {
@@ -368,7 +374,8 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {coupons.map((coupon, index) => {
-                const isExpired = coupon.expiryDate && coupon.expiryDate.toDate() < new Date();
+                const expiry = toJsDate(coupon.expiryDate);
+                const isExpired = expiry ? expiry < new Date() : false;
 
                 return (
                   <motion.div

@@ -267,48 +267,58 @@ export async function DELETE(
     const { id } = await params;
     const idParam = id ?? '';
 
-    // Try finding the record first to ensure it exists and get correct ID
-    let existingData = null;
+    let existingData: { id: string } | null = null;
 
-    // 1) If idParam is numeric, try matching store_id first
-    if (/^\d+$/.test(idParam)) {
+    // 1) UUID primary key
+    if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idParam)) {
       const { data } = await supabase
         .from('stores')
-        .select('store_id')
+        .select('id')
+        .eq('id', idParam)
+        .limit(1)
+        .maybeSingle();
+      existingData = data;
+    }
+
+    // 2) Integer store_id
+    if (!existingData && /^\d+$/.test(idParam)) {
+      const { data } = await supabase
+        .from('stores')
+        .select('id')
         .eq('store_id', Number(idParam))
         .limit(1)
         .maybeSingle();
       existingData = data;
     }
 
-    // 2) If not found yet, try matching slug
+    // 3) slug
     if (!existingData) {
       const { data } = await supabase
         .from('stores')
-        .select('store_id')
+        .select('id')
         .eq('slug', idParam)
         .limit(1)
         .maybeSingle();
       existingData = data;
     }
 
-    // 3) Fallback: case-insensitive slug
+    // 4) case-insensitive slug
     if (!existingData) {
       const { data } = await supabase
         .from('stores')
-        .select('store_id')
+        .select('id')
         .ilike('slug', idParam)
         .limit(1)
         .maybeSingle();
       existingData = data;
     }
 
-    // 4) Fallback: name
+    // 5) store name
     if (!existingData && idParam) {
       const nameGuess = idParam.replace(/-/g, ' ');
       const { data } = await supabase
         .from('stores')
-        .select('store_id')
+        .select('id')
         .ilike('store_name', nameGuess)
         .limit(1)
         .maybeSingle();
@@ -322,11 +332,7 @@ export async function DELETE(
       );
     }
 
-    // Delete the record using store_id
-    const { error } = await supabase
-      .from('stores')
-      .delete()
-      .eq('store_id', existingData.store_id);
+    const { error } = await supabase.from('stores').delete().eq('id', existingData.id);
 
     if (error) {
       console.error('Error deleting store:', error);

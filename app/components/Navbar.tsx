@@ -13,6 +13,7 @@ import {
   Phone, Heart, ShoppingBag, Moon,
   MapPin, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube
 } from "lucide-react";
+import CategoryIcon from "@/app/components/CategoryIcon";
 
 // Helper function to get favicon URL from store data
 const getStoreFaviconUrl = (store: Store): string => {
@@ -179,8 +180,8 @@ export default function Navbar() {
       <div className="col-span-3 grid grid-cols-2 gap-x-6 gap-y-2">
         {categories.slice(0, 10).map((cat) => (
           <Link key={cat.id} href={`/categories/${cat.id}`} className="flex items-center gap-2 group/item p-1.5 hover:bg-gray-50 rounded-lg transition-colors">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] text-white font-bold" style={{ backgroundColor: cat.backgroundColor || '#ccc' }}>
-              {cat.logoUrl ? <img src={cat.logoUrl} className="w-4 h-4 object-contain" /> : cat.name.charAt(0)}
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] text-white font-bold overflow-hidden" style={{ backgroundColor: cat.backgroundColor || '#ccc' }}>
+              <CategoryIcon logoUrl={cat.logoUrl} name={cat.name} imgClassName="w-4 h-4 object-contain" emojiClassName="text-sm leading-none" fallbackClassName="text-[10px] font-bold" />
             </div>
             <span className="text-sm text-gray-700 font-medium group-hover/item:text-[#0B453C] transition-colors">{cat.name}</span>
           </Link>
@@ -401,11 +402,13 @@ export default function Navbar() {
                             className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
                             style={{ backgroundColor: category.backgroundColor || '#ccc' }}
                           >
-                            {category.logoUrl ? (
-                              <img src={category.logoUrl} className="w-6 h-6 object-contain" alt={category.name} />
-                            ) : (
-                              category.name.charAt(0)
-                            )}
+                            <CategoryIcon
+                              logoUrl={category.logoUrl}
+                              name={category.name}
+                              imgClassName="w-6 h-6 object-contain"
+                              emojiClassName="text-xl leading-none"
+                              fallbackClassName="text-sm font-bold"
+                            />
                           </div>
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold text-sm text-gray-900 truncate">{category.name}</div>

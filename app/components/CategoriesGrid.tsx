@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getCategories, Category } from '@/lib/services/categoryService';
 import Link from 'next/link';
+import CategoryIcon from '@/app/components/CategoryIcon';
 
 export default function CategoriesGrid() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -113,25 +114,13 @@ export default function CategoriesGrid() {
                                 style={{ backgroundColor: category.backgroundColor }}
                               ></div>
 
-                              {category.logoUrl ? (
-                                <img
-                                  src={category.logoUrl}
-                                  alt={category.name}
-                                  className={`${category.logoUrl.includes('data:image/svg+xml') ? 'w-full h-full' : 'w-8 h-8'} object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300`}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full h-full rounded-full flex items-center justify-center relative z-10" style={{ backgroundColor: category.backgroundColor }}>
-                                  <div className="w-3/4 h-3/4 rounded-full bg-gray-200 flex items-center justify-center">
-                                    <span className="text-base font-bold text-gray-700">
-                                      {category.name.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
+                              <CategoryIcon
+                                logoUrl={category.logoUrl}
+                                name={category.name}
+                                imgClassName="w-8 h-8 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                                emojiClassName="text-2xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                                fallbackClassName="text-base font-bold text-gray-700 relative z-10"
+                              />
                             </div>
                             <span className="text-xs font-semibold text-gray-800 group-hover:text-[#0B453C] transition-colors duration-300 lowercase text-center line-clamp-2">
                               {category.name.toLowerCase()}
@@ -156,25 +145,13 @@ export default function CategoriesGrid() {
                                 style={{ backgroundColor: category.backgroundColor }}
                               ></div>
 
-                              {category.logoUrl ? (
-                                <img
-                                  src={category.logoUrl}
-                                  alt={category.name}
-                                  className={`${category.logoUrl.includes('data:image/svg+xml') ? 'w-full h-full' : 'w-8 h-8'} object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300`}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full h-full rounded-full flex items-center justify-center relative z-10" style={{ backgroundColor: category.backgroundColor }}>
-                                  <div className="w-3/4 h-3/4 rounded-full bg-gray-200 flex items-center justify-center">
-                                    <span className="text-base font-bold text-gray-700">
-                                      {category.name.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
+                              <CategoryIcon
+                                logoUrl={category.logoUrl}
+                                name={category.name}
+                                imgClassName="w-8 h-8 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                                emojiClassName="text-2xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                                fallbackClassName="text-base font-bold text-gray-700 relative z-10"
+                              />
                             </div>
                             <span className="text-xs font-semibold text-gray-800 group-hover:text-[#0B453C] transition-colors duration-300 lowercase text-center line-clamp-2">
                               {category.name.toLowerCase()}
@@ -199,25 +176,13 @@ export default function CategoriesGrid() {
                                 style={{ backgroundColor: category.backgroundColor }}
                               ></div>
 
-                              {category.logoUrl ? (
-                                <img
-                                  src={category.logoUrl}
-                                  alt={category.name}
-                                  className={`${category.logoUrl.includes('data:image/svg+xml') ? 'w-full h-full' : 'w-8 h-8'} object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300`}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                  }}
-                                />
-                              ) : (
-                                <div className="w-full h-full rounded-full flex items-center justify-center relative z-10" style={{ backgroundColor: category.backgroundColor }}>
-                                  <div className="w-3/4 h-3/4 rounded-full bg-gray-200 flex items-center justify-center">
-                                    <span className="text-base font-bold text-gray-700">
-                                      {category.name.charAt(0).toUpperCase()}
-                                    </span>
-                                  </div>
-                                </div>
-                              )}
+                              <CategoryIcon
+                                logoUrl={category.logoUrl}
+                                name={category.name}
+                                imgClassName="w-8 h-8 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                                emojiClassName="text-2xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                                fallbackClassName="text-base font-bold text-gray-700 relative z-10"
+                              />
                             </div>
                             <span className="text-xs font-semibold text-gray-800 group-hover:text-[#0B453C] transition-colors duration-300 lowercase text-center line-clamp-2">
                               {category.name.toLowerCase()}
@@ -249,40 +214,13 @@ export default function CategoriesGrid() {
                     style={{ backgroundColor: category.backgroundColor }}
                   ></div>
 
-                  {category.logoUrl ? (
-                    <img
-                      src={category.logoUrl}
-                      alt={category.name}
-                      className={`${category.logoUrl.includes('data:image/svg+xml') ? 'w-full h-full' : 'w-9 h-9 sm:w-11 sm:h-11'} object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300`}
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        // Show fallback
-                        const parent = target.parentElement;
-                        if (parent) {
-                          const existingFallback = parent.querySelector('.fallback-letter');
-                          if (!existingFallback) {
-                            const fallback = document.createElement('div');
-                            fallback.className = 'fallback-letter absolute inset-0 w-full h-full rounded-full flex items-center justify-center z-10';
-                            fallback.innerHTML = `
-                              <div class="w-3/4 h-3/4 rounded-full bg-gray-200 flex items-center justify-center">
-                                <span class="text-lg sm:text-xl font-bold text-gray-700">${category.name.charAt(0).toUpperCase()}</span>
-                              </div>
-                            `;
-                            parent.appendChild(fallback);
-                          }
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full flex items-center justify-center relative z-10" style={{ backgroundColor: category.backgroundColor }}>
-                      <div className="w-3/4 h-3/4 rounded-full bg-gray-200 flex items-center justify-center group-hover:bg-gray-100 transition-colors duration-300">
-                        <span className="text-lg sm:text-xl font-bold text-gray-700 group-hover:text-gray-800 transition-colors duration-300">
-                          {category.name.charAt(0).toUpperCase()}
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                  <CategoryIcon
+                    logoUrl={category.logoUrl}
+                    name={category.name}
+                    imgClassName="w-9 h-9 sm:w-11 sm:h-11 object-contain relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                    emojiClassName="text-3xl sm:text-4xl relative z-10 group-hover:rotate-12 transition-transform duration-300"
+                    fallbackClassName="text-lg sm:text-xl font-bold text-gray-700 relative z-10"
+                  />
                 </div>
                 <span className="text-sm sm:text-base font-semibold text-gray-800 group-hover:text-[#0B453C] transition-all duration-300 lowercase flex-1 group-hover:translate-x-1">
                   {category.name.toLowerCase()}

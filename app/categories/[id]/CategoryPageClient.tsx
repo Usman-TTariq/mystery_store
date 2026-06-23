@@ -10,6 +10,7 @@ import Footer from '@/app/components/Footer';
 import Newsletter from '@/app/components/Newsletter';
 import CouponPopup from '@/app/components/CouponPopup';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
+import CategoryIcon from '@/app/components/CategoryIcon';
 import { Tag, CheckCircle, Calendar, ExternalLink, ArrowRight, Info } from 'lucide-react';
 import Link from 'next/link';
 
@@ -228,25 +229,13 @@ export default function CategoryPageClient({ params }: { params: { id: string } 
               className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center shadow-md flex-shrink-0"
               style={{ backgroundColor: category.backgroundColor }}
             >
-              {category.logoUrl ? (
-                <img
-                  src={category.logoUrl}
-                  alt={category.name}
-                  className={`${category.logoUrl.includes('data:image/svg+xml') ? 'w-full h-full' : 'w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14'} object-contain`}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-full h-full rounded-full flex items-center justify-center" style={{ backgroundColor: category.backgroundColor }}>
-                  <div className="w-3/4 h-3/4 rounded-full bg-gray-200 flex items-center justify-center">
-                    <span className="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700">
-                      {category.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                </div>
-              )}
+              <CategoryIcon
+                logoUrl={category.logoUrl}
+                name={category.name}
+                imgClassName="w-8 h-8 sm:w-12 sm:h-12 md:w-14 md:h-14 object-contain"
+                emojiClassName="text-2xl sm:text-4xl md:text-5xl leading-none"
+                fallbackClassName="text-lg sm:text-2xl md:text-3xl font-bold text-gray-700"
+              />
             </div>
             <div className="min-w-0 flex-1">
               <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold text-gray-800 capitalize truncate">

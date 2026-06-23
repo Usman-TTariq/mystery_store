@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import {
   getStoreById,
   updateStore,
-  deleteStore,
   Store,
   isSlugUnique,
 } from '@/lib/services/storeService';
@@ -217,40 +216,31 @@ export default function EditStorePage() {
     setSaving(false);
   };
 
-  // const handleDelete = async () => {
-  //   if (!window.confirm('Are you sure you want to delete this store? This action cannot be undone.')) {
-  //     return;
-  //   }
+  const handleDelete = async () => {
+    if (!window.confirm('Are you sure you want to delete this store? This action cannot be undone.')) {
+      return;
+    }
 
-  //   setDeleting(true);
+    setDeleting(true);
 
-  //   if (isSupabaseStore) {
-  //     try {
-  //       const res = await fetch(`/api/stores/supabase/by-id/${encodeURIComponent(storeId)}`, {
-  //         method: 'DELETE',
-  //       });
-  //       const data = await res.json();
+    try {
+      const res = await fetch(`/api/stores/supabase/by-id/${encodeURIComponent(storeId)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
 
-  //       if (res.ok && data.success) {
-  //         router.push('/admin/stores');
-  //       } else {
-  //         alert(`Failed to delete store from Supabase: ${data.error || 'Unknown error'}`);
-  //       }
-  //     } catch (err) {
-  //       console.error('Error deleting Supabase store:', err);
-  //       alert('Failed to delete store. Check console for details.');
-  //     }
-  //   } else { 
-  //     // Delete via Firebase
-  //     const result = await deleteStore(storeId);
-  //     if (result.success) {
-  //       router.push('/admin/stores');
-  //     } else {
-  //       alert('Failed to delete store from Firebase.');
-  //     }
-  //   }
-  //   setDeleting(false);
-  // };
+      if (res.ok && data.success) {
+        router.push('/admin/stores');
+      } else {
+        alert(`Failed to delete store: ${data.error || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Error deleting store:', err);
+      alert('Failed to delete store. Check console for details.');
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleLogoUrlChange = (url: string) => {
     setLogoUrl(url);
@@ -279,7 +269,14 @@ export default function EditStorePage() {
         >
           ← Back
         </button>
-
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={deleting}
+          className="bg-red-100 text-red-700 px-4 py-2 rounded-lg hover:bg-red-200 font-semibold disabled:opacity-50"
+        >
+          {deleting ? 'Deleting...' : 'Delete Store'}
+        </button>
       </div>
 
       <div className="bg-white rounded-lg border border-gray-200 p-6">

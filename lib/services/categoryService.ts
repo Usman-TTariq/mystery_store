@@ -159,7 +159,13 @@ export async function createCategory(
     return { success: true, id: data.id }
   } catch (error) {
     console.error('Error creating category:', error)
-    return { success: false, error }
+    return {
+      success: false,
+      error: {
+        message: error instanceof Error ? error.message : 'Failed to create category',
+        code: 'UNKNOWN_ERROR',
+      },
+    }
   }
 }
 

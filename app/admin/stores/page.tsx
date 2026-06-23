@@ -6,7 +6,6 @@ import {
   getStores,
   createStore,
   updateStore,
-  deleteStore,
   Store,
   isSlugUnique,
 } from '@/lib/services/storeService';
@@ -14,6 +13,7 @@ import { getCategories, Category } from '@/lib/services/categoryService';
 import { extractOriginalCloudinaryUrl, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import StoreCouponsPriorityModal from './StoreCouponsPriorityModal';
 import { createClient } from '@/lib/supabase/client';
+import { getCategoryEmoji } from '@/lib/utils/categoryIcon';
 
 export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -348,8 +348,8 @@ export default function StoresPage() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               name: categoryName,
-              icon_url: '📦', // Default icon
-              background_color: '#E5E7EB', // Default gray color
+              icon_url: getCategoryEmoji(categoryName),
+              background_color: '#E5E7EB',
             }),
           });
 
@@ -607,44 +607,26 @@ export default function StoresPage() {
     }
   };
 
-  const handleDelete = async (id: string | undefined) => {
-    if (!id) return;
-    if (confirm('Are you sure you want to delete this store?')) {
-      // Check if it's a Supabase store
-      const isSupabaseStore = supabaseStores.some(s => s.id === id || s.slug === id);
+  const handleDelete = async (store: Store) => {
+    const deleteId = store.id || store.slug;
+    if (!deleteId) return;
 
-      if (isSupabaseStore) {
-        try {
-          const res = await fetch(`/api/stores/supabase/by-id/${encodeURIComponent(id)}`, {
-            method: 'DELETE',
-          });
-          const data = await res.json();
+    if (!confirm(`Delete "${store.name}"? This cannot be undone.`)) return;
 
-          if (res.ok && data.success) {
-            // Refresh stores
-            const [storesData, supabaseResponse] = await Promise.all([
-              getStores(),
-              fetch('/api/stores/supabase').then(res => res.json()).catch(err => ({ success: false, stores: [] }))
-            ]);
+    try {
+      const res = await fetch(`/api/stores/supabase/by-id/${encodeURIComponent(deleteId)}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
 
-            const supabaseList: Store[] = Array.isArray(supabaseResponse?.stores)
-              ? (supabaseResponse.stores as Store[])
-              : [];
-
-            setStores(storesData);
-            setSupabaseStores(supabaseList);
-          } else {
-            alert(`Failed to delete store from Supabase: ${data.error || 'Unknown error'}`);
-          }
-        } catch (err) {
-          console.error('Error deleting Supabase store:', err);
-          alert('Failed to delete store. Check console for details.');
-        }
+      if (res.ok && data.success) {
+        fetchStores();
       } else {
-        await deleteStore(id);
-        const data = await getStores();
-        setStores(data);
+        alert(`Failed to delete store: ${data.error || 'Unknown error'}`);
       }
+    } catch (err) {
+      console.error('Error deleting store:', err);
+      alert('Failed to delete store. Check console for details.');
     }
   };
 
@@ -1637,16 +1619,17 @@ export default function StoresPage() {
                         >
                           View coupons
                         </button>
-                        <div className="flex gap-2">
+                        <div className="flex flex-wrap gap-2">
                           <Link
                             href={`/admin/stores/${store.id}`}
-                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                            className="inline-block bg-blue-100 text-blue-700 px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-blue-200 text-center font-medium"
                           >
                             Edit
                           </Link>
                           <button
-                            onClick={() => handleDelete(store.id)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium cursor-pointer"
+                            type="button"
+                            onClick={() => handleDelete(store)}
+                            className="bg-red-100 text-red-700 px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-red-200 font-medium"
                           >
                             Delete
                           </button>

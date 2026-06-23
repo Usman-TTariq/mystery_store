@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "framer-motion";
 import { getCategories, Category } from "@/lib/services/categoryService";
+import CategoryIcon from "@/app/components/CategoryIcon";
 
 // Helper component for Scroll Container
 const ScrollContainer = ({ children, className }: { children: React.ReactNode; className?: string }) => {
@@ -103,11 +104,7 @@ export default function ShopByCategory() {
                                     {/* Parallax-like shiny effect on hover */}
                                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500 rounded-full" />
 
-                                    {cat.logoUrl ? (
-                                        <img src={cat.logoUrl} alt={cat.name} className="w-9 h-9 object-contain relative z-10" />
-                                    ) : (
-                                        <span className="text-xl font-bold relative z-10">{cat.name.charAt(0)}</span>
-                                    )}
+                                    <CategoryIcon logoUrl={cat.logoUrl} name={cat.name} />
                                 </motion.div>
                                 <span className="text-sm font-bold text-gray-700 text-center whitespace-nowrap group-hover:text-[#0B453C] transition-colors">
                                     {cat.name}

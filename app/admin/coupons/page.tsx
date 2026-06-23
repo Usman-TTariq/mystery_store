@@ -189,6 +189,54 @@ export default function CouponsPage() {
     return ['true', '1', 'yes', 'y', 't'].includes(v);
   };
 
+  const normalizeName = (value: string) =>
+    value.trim().toLowerCase().replace(/\s+/g, ' ').replace(/[^\w\s.-]/g, '');
+
+  const resolveStoreForUpload = (
+    storeName: string,
+    csvStoreId: number,
+    url: string | null,
+    storesList: Store[]
+  ): { uuid: string; name: string; storeId?: number } | null => {
+    const needle = storeName ? normalizeName(storeName) : '';
+
+    if (needle) {
+      const exact = storesList.find((s) => s.name && normalizeName(s.name) === needle);
+      if (exact?.id) return { uuid: exact.id, name: exact.name, storeId: exact.storeId };
+
+      const partial = storesList.find((s) => {
+        if (!s.name) return false;
+        const hay = normalizeName(s.name);
+        return hay.includes(needle) || needle.includes(hay);
+      });
+      if (partial?.id) return { uuid: partial.id, name: partial.name, storeId: partial.storeId };
+    }
+
+    if (csvStoreId) {
+      const byId = storesList.find((s) => s.storeId === csvStoreId);
+      if (byId?.id) return { uuid: byId.id, name: byId.name, storeId: byId.storeId };
+    }
+
+    if (url?.trim()) {
+      try {
+        const host = new URL(url.trim()).hostname.replace(/^www\./, '').toLowerCase();
+        const byUrl = storesList.find((s) => {
+          if (!s.websiteUrl) return false;
+          try {
+            return new URL(s.websiteUrl).hostname.replace(/^www\./, '').toLowerCase() === host;
+          } catch {
+            return false;
+          }
+        });
+        if (byUrl?.id) return { uuid: byUrl.id, name: byUrl.name, storeId: byUrl.storeId };
+      } catch {
+        // ignore invalid URL
+      }
+    }
+
+    return null;
+  };
+
   const handleBulkUpload = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -203,7 +251,9 @@ export default function CouponsPage() {
       return;
     }
 
-    const header = headerRow.map((h) => h.toString().trim().toLowerCase());
+    const header = headerRow.map((h) =>
+      h.toString().trim().replace(/^\ufeff/, '').toLowerCase()
+    );
     const indexOf = (name: string) => header.indexOf(name.toLowerCase());
 
     // Support both old CSV format and new Excel format
@@ -235,32 +285,42 @@ export default function CouponsPage() {
       return;
     }
 
+    let storesList = stores;
+    try {
+      const freshStores = await getStores();
+      if (freshStores.length) {
+        storesList = freshStores;
+        setStores(freshStores);
+      }
+    } catch {
+      // use cached stores list
+    }
+
+    if (!storesList.length) {
+      setUploadPreviewError('No stores in database. Upload stores first, then upload coupons.');
+      return;
+    }
+
     const supabaseRows = dataRows
       .map((row) => {
-        let store_id = idxStoreId !== -1 ? parseInt(row[idxStoreId] || '0', 10) : 0;
+        const csvStoreId = idxStoreId !== -1 ? parseInt(row[idxStoreId] || '0', 10) || 0 : 0;
+        const storeName = idxStoreName !== -1 ? row[idxStoreName]?.toString().trim() : '';
+        const url = idxUrl !== -1 ? row[idxUrl]?.toString().trim() || null : null;
 
-        // If no store_id, try to find store by name
-        if (!store_id && idxStoreName !== -1) {
-          const storeName = row[idxStoreName]?.toString().trim();
-          if (storeName) {
-            const foundStore = stores.find(s =>
-              s.name?.toLowerCase() === storeName.toLowerCase()
-            );
-            if (foundStore && foundStore.storeId) {
-              store_id = foundStore.storeId;
-            }
-          }
-        }
+        const resolved = resolveStoreForUpload(storeName, csvStoreId, url, storesList);
+        if (!resolved) return null;
 
-        if (!store_id) return null;
-
-        // Use Title if available, otherwise use Description
-        const description = idxTitle !== -1 && row[idxTitle]
-          ? row[idxTitle]
-          : (idxDescription !== -1 ? row[idxDescription] : null);
+        const title = idxTitle !== -1 ? row[idxTitle]?.toString().trim() || null : null;
+        const description =
+          idxDescription !== -1 && row[idxDescription]
+            ? row[idxDescription]
+            : title || '';
 
         return {
-          store_id,
+          storeUuid: resolved.uuid,
+          store_id: resolved.storeId ?? (csvStoreId || null),
+          storeName: storeName || resolved.name,
+          title,
           couponType: idxCouponType !== -1 ? (row[idxCouponType]?.toString().toLowerCase() === 'deal' ? 'deal' : 'code') : 'code',
           code: idxCode !== -1 ? row[idxCode] || null : null,
           categoryId: idxCategoryId !== -1 ? row[idxCategoryId] || null : null,
@@ -284,7 +344,9 @@ export default function CouponsPage() {
       .filter((row) => row !== null);
 
     if (!supabaseRows.length) {
-      setUploadPreviewError('No valid data rows found in CSV.');
+      setUploadPreviewError(
+        `No rows matched any of ${storesList.length} store(s). Check "Store Name" in CSV matches store names in Admin → Stores.`
+      );
       return;
     }
 
@@ -300,10 +362,18 @@ export default function CouponsPage() {
 
       const result = await response.json();
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Bulk upload failed.');
+        const detail = Array.isArray(result.errors) && result.errors.length
+          ? `\n${result.errors.slice(0, 8).join('\n')}`
+          : '';
+        throw new Error((result.error || 'Bulk upload failed.') + detail);
       }
 
-      alert(`Successfully uploaded ${supabaseRows.length} coupons.`);
+      const skippedNote =
+        result.skipped > 0 && Array.isArray(result.errors)
+          ? `\n\nSkipped ${result.skipped}:\n${result.errors.slice(0, 8).join('\n')}`
+          : '';
+
+      alert(`Successfully uploaded ${result.uploaded ?? supabaseRows.length} coupons.${skippedNote}`);
       setShowUploadModal(false);
       setUploadPreviewRows([]);
       setUploadPreviewError(null);
@@ -719,6 +789,34 @@ export default function CouponsPage() {
     fetchCoupons();
   };
 
+  const handleDeleteAll = async () => {
+    if (!confirm('Are you sure you want to delete ALL coupons? This action cannot be undone!')) {
+      return;
+    }
+
+    if (!confirm('This will permanently delete all coupons from the database. Are you absolutely sure?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/coupons/delete-all', {
+        method: 'DELETE',
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        alert(`Successfully deleted ${result.count ?? 'all'} coupons.`);
+        fetchCoupons();
+      } else {
+        alert(`Failed to delete coupons: ${result.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting all coupons:', error);
+      alert('Failed to delete coupons. Check console for details.');
+    }
+  };
+
   // Reset to first page when search query changes
   useEffect(() => {
     setCurrentPage(1);
@@ -743,6 +841,12 @@ export default function CouponsPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">Manage Coupons</h1>
         <div className="flex gap-2">
+          <button
+            onClick={handleDeleteAll}
+            className="cursor-pointer bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition whitespace-nowrap"
+          >
+            Delete All Coupons
+          </button>
           <button
             onClick={() => {
               setUploadPreviewRows([]);

@@ -1,4 +1,5 @@
 import { createCategory, getCategories } from '@/lib/services/categoryService';
+import { getCategoryEmoji } from '@/lib/utils/categoryIcon';
 
 export async function GET() {
     try {
@@ -32,23 +33,34 @@ export async function POST(req: Request) {
             );
         }
 
-        const result = await createCategory({
+        const result = await createCategory(
             name,
-            icon_url: icon_url || '📦',
-            background_color: background_color || '#E5E7EB',
-        });
+            background_color || '#E5E7EB',
+            undefined,
+            icon_url || getCategoryEmoji(name)
+        );
 
         if (result.success) {
             return new Response(
                 JSON.stringify({ success: true, id: result.id }),
                 { status: 201, headers: { 'Content-Type': 'application/json' } }
             );
-        } else {
-            return new Response(
-                JSON.stringify({ success: false, error: result.error }),
-                { status: 500, headers: { 'Content-Type': 'application/json' } }
-            );
         }
+
+        const err = result.error;
+        const errorMessage =
+            typeof err === 'string'
+                ? err
+                : err && typeof err === 'object' && 'message' in err
+                  ? String((err as { message: unknown }).message)
+                  : err instanceof Error
+                    ? err.message
+                    : 'Failed to create category';
+
+        return new Response(
+            JSON.stringify({ success: false, error: errorMessage }),
+            { status: 500, headers: { 'Content-Type': 'application/json' } }
+        );
     } catch (error) {
         console.error('Error creating category:', error);
         return new Response(

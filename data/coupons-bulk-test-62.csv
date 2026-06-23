@@ -1,0 +1,64 @@
+store_id,Store Name,couponType,code,title,description,discount,discountType,expiryDate,getCodeText,getDealText,isActive,isLatest,isPopular,maxUses,url
+1,Your Surprise,code,BULKCPN-001,Your Surprise — 10€ Off,Save 10€ at Your Surprise with this verified promo code.,10,fixed,2026-12-31,Get Code,,true,true,true,100,https://www.yoursurprise.com
+2,Saniweb.de,code,BULKCPN-002,Saniweb.de — 15% Off,Save 15% at Saniweb.de with this verified promo code.,15,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.saniweb.de
+3,Nordic Home DE,code,BULKCPN-003,Nordic Home DE — 20% Off,Save 20% at Nordic Home DE with this verified promo code.,20,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.nordichome.de
+4,StyleHub UK,code,BULKCPN-004,StyleHub UK — 25% Off,Save 25% at StyleHub UK with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.stylehub.co.uk
+5,TechNova US,code,BULKCPN-005,TechNova US — 30% Off,Save 30% at TechNova US with this verified promo code.,30,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.technova.com
+6,GreenMart DE,code,BULKCPN-006,GreenMart DE — 5% Off,Save 5% at GreenMart DE with this verified promo code.,5,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.greenmart.de
+7,FitPulse UK,deal,,FitPulse UK — Special Deal 6,Exclusive deal at FitPulse UK. Limited time offer.,0,percentage,2026-12-31,,Get Deal,true,false,false,100,https://www.fitpulse.co.uk
+8,BeautyGlow DE,code,BULKCPN-007,BeautyGlow DE — 10% Off,Save 10% at BeautyGlow DE with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.beautyglow.de
+9,TravelEase US,code,BULKCPN-008,TravelEase US — 15% Off,Save 15% at TravelEase US with this verified promo code.,15,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.travelease.com
+10,PetWorld DE,code,BULKCPN-009,PetWorld DE — 20% Off,Save 20% at PetWorld DE with this verified promo code.,20,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.petworld.de
+11,BookNest UK,code,BULKCPN-010,BookNest UK — 25% Off,Save 25% at BookNest UK with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.booknest.co.uk
+12,AutoParts Pro DE,code,BULKCPN-011,AutoParts Pro DE — 30€ Off,Save 30€ at AutoParts Pro DE with this verified promo code.,30,fixed,2026-12-31,Get Code,,true,false,false,100,https://www.autopartspro.de
+13,KidJoy US,code,BULKCPN-012,KidJoy US — 5% Off,Save 5% at KidJoy US with this verified promo code.,5,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.kidjoy.com
+14,OfficeMax DE,deal,,OfficeMax DE — Special Deal 12,Exclusive deal at OfficeMax DE. Limited time offer.,0,percentage,2026-12-31,,Get Deal,true,false,false,100,https://www.officemax.de
+15,GardenFresh UK,code,BULKCPN-013,GardenFresh UK — 10% Off,Save 10% at GardenFresh UK with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.gardenfresh.co.uk
+16,SoundWave US,code,BULKCPN-014,SoundWave US — 15% Off,Save 15% at SoundWave US with this verified promo code.,15,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.soundwave.com
+17,LuxWatch DE,code,BULKCPN-015,LuxWatch DE — 20% Off,Save 20% at LuxWatch DE with this verified promo code.,20,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.luxwatch.de
+18,CoffeeBean UK,code,BULKCPN-016,CoffeeBean UK — 25% Off,Save 25% at CoffeeBean UK with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.coffeebean.co.uk
+19,ShoeArena DE,code,BULKCPN-017,ShoeArena DE — 30% Off,Save 30% at ShoeArena DE with this verified promo code.,30,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.shoearena.de
+20,SmartHome Hub US,code,BULKCPN-018,SmartHome Hub US — 5% Off,Save 5% at SmartHome Hub US with this verified promo code.,5,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.smarthomehub.com
+21,WineCellar DE,deal,,WineCellar DE — Special Deal 18,Exclusive deal at WineCellar DE. Limited time offer.,0,percentage,2026-12-31,,Get Deal,true,true,true,100,https://www.winecellar.de
+22,YogaZen UK,code,BULKCPN-019,YogaZen UK — 10% Off,Save 10% at YogaZen UK with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.yogazen.co.uk
+23,BikePro DE,code,BULKCPN-020,BikePro DE — 15€ Off,Save 15€ at BikePro DE with this verified promo code.,15,fixed,2026-12-31,Get Code,,true,false,false,100,https://www.bikepro.de
+24,CraftBox US,code,BULKCPN-021,CraftBox US — 20% Off,Save 20% at CraftBox US with this verified promo code.,20,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.craftbox.com
+25,PhoneFix DE,code,BULKCPN-022,PhoneFix DE — 25% Off,Save 25% at PhoneFix DE with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.phonefix.de
+26,LuxBedding UK,code,BULKCPN-023,LuxBedding UK — 30% Off,Save 30% at LuxBedding UK with this verified promo code.,30,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.luxbedding.co.uk
+27,OutdoorPeak DE,code,BULKCPN-024,OutdoorPeak DE — 5% Off,Save 5% at OutdoorPeak DE with this verified promo code.,5,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.outdoorpeak.de
+28,BabyBloom US,deal,,BabyBloom US — Special Deal 24,Exclusive deal at BabyBloom US. Limited time offer.,0,percentage,2026-12-31,,Get Deal,true,false,false,100,https://www.babybloom.com
+29,PhotoLens DE,code,BULKCPN-025,PhotoLens DE — 10% Off,Save 10% at PhotoLens DE with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.photolens.de
+30,SnackBox UK,code,BULKCPN-026,SnackBox UK — 15% Off,Save 15% at SnackBox UK with this verified promo code.,15,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.snackbox.co.uk
+31,CleanPro DE,code,BULKCPN-027,CleanPro DE — 20% Off,Save 20% at CleanPro DE with this verified promo code.,20,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.cleanpro.de
+32,GameZone US,code,BULKCPN-028,GameZone US — 25% Off,Save 25% at GameZone US with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.gamezone.com
+33,JewelCraft DE,code,BULKCPN-029,JewelCraft DE — 30% Off,Save 30% at JewelCraft DE with this verified promo code.,30,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.jewelcraft.de
+34,EcoWear UK,code,BULKCPN-030,EcoWear UK — 5€ Off,Save 5€ at EcoWear UK with this verified promo code.,5,fixed,2026-12-31,Get Code,,true,false,false,100,https://www.ecowear.co.uk
+35,ToolMaster DE,deal,,ToolMaster DE — Special Deal 30,Exclusive deal at ToolMaster DE. Limited time offer.,0,percentage,2026-12-31,,Get Deal,true,false,false,100,https://www.toolmaster.de
+36,VitaminPlus US,code,BULKCPN-031,VitaminPlus US — 10% Off,Save 10% at VitaminPlus US with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.vitaminplus.com
+37,LuggageGo DE,code,BULKCPN-032,LuggageGo DE — 15% Off,Save 15% at LuggageGo DE with this verified promo code.,15,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.luggagego.de
+38,HairStudio UK,code,BULKCPN-033,HairStudio UK — 20% Off,Save 20% at HairStudio UK with this verified promo code.,20,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.hairstudio.co.uk
+39,DeskFlow DE,code,BULKCPN-034,DeskFlow DE — 25% Off,Save 25% at DeskFlow DE with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.deskflow.de
+40,PizzaPal US,code,BULKCPN-035,PizzaPal US — 30% Off,Save 30% at PizzaPal US with this verified promo code.,30,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.pizzapal.com
+41,RunFast DE,code,BULKCPN-036,RunFast DE — 5% Off,Save 5% at RunFast DE with this verified promo code.,5,percentage,2026-12-31,Get Code,,true,true,true,100,https://www.runfast.de
+42,LensDirect UK,deal,,LensDirect UK — Special Deal 36,Exclusive deal at LensDirect UK. Limited time offer.,0,percentage,2026-12-31,,Get Deal,true,false,false,100,https://www.lensdirect.co.uk
+43,SolarBright DE,code,BULKCPN-037,SolarBright DE — 10% Off,Save 10% at SolarBright DE with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.solarbright.de
+44,TeaHouse US,code,BULKCPN-038,TeaHouse US — 15% Off,Save 15% at TeaHouse US with this verified promo code.,15,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.teahouse.com
+45,WatchRepair DE,code,BULKCPN-039,WatchRepair DE — 20€ Off,Save 20€ at WatchRepair DE with this verified promo code.,20,fixed,2026-12-31,Get Code,,true,false,true,100,https://www.watchrepair.de
+46,CampFire UK,code,BULKCPN-040,CampFire UK — 25% Off,Save 25% at CampFire UK with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.campfire.co.uk
+47,PrintHub DE,code,BULKCPN-041,PrintHub DE — 30% Off,Save 30% at PrintHub DE with this verified promo code.,30,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.printhub.de
+48,MusicGear US,code,BULKCPN-042,MusicGear US — 5% Off,Save 5% at MusicGear US with this verified promo code.,5,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.musicgear.com
+49,SkinLab DE,deal,,SkinLab DE — Special Deal 42,Exclusive deal at SkinLab DE. Limited time offer.,0,percentage,2026-12-31,,Get Deal,true,false,true,100,https://www.skinlab.de
+50,HostEasy UK,code,BULKCPN-043,HostEasy UK — 10% Off,Save 10% at HostEasy UK with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.hosteasy.co.uk
+51,FishMarket DE,code,BULKCPN-044,FishMarket DE — 15% Off,Save 15% at FishMarket DE with this verified promo code.,15,percentage,2026-12-31,Get Code,,true,true,false,100,https://www.fishmarket.de
+52,SnowPeak US,code,BULKCPN-045,SnowPeak US — 20% Off,Save 20% at SnowPeak US with this verified promo code.,20,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.snowpeak.com
+53,FlowerBox DE,code,BULKCPN-046,FlowerBox DE — 25% Off,Save 25% at FlowerBox DE with this verified promo code.,25,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.flowerbox.de
+54,CodeLearn UK,code,BULKCPN-047,CodeLearn UK — 30% Off,Save 30% at CodeLearn UK with this verified promo code.,30,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.codelearn.co.uk
+55,MattressKing DE,code,BULKCPN-048,MattressKing DE — 5% Off,Save 5% at MattressKing DE with this verified promo code.,5,percentage,2026-12-31,Get Code,,true,false,false,100,https://www.mattressking.de
+56,GadgetBay US,deal,,GadgetBay US — Special Deal 48,Exclusive deal at GadgetBay US. Limited time offer.,0,fixed,2026-12-31,,Get Deal,true,true,false,100,https://www.gadgetbay.com
+57,HerbGarden DE,code,BULKCPN-049,HerbGarden DE — 10% Off,Save 10% at HerbGarden DE with this verified promo code.,10,percentage,2026-12-31,Get Code,,true,false,true,100,https://www.herbgarden.de
+1,Your Surprise,code,BULKCPN2-01,Your Surprise — Extra 10% Off,Second offer for Your Surprise bulk upload test.,10,percentage,2026-06-30,Copy Code,,true,false,false,50,https://www.yoursurprise.com
+2,Saniweb.de,code,BULKCPN2-02,Saniweb.de — Extra 10% Off,Second offer for Saniweb.de bulk upload test.,10,percentage,2026-06-30,Copy Code,,true,false,false,50,https://www.saniweb.de
+3,Nordic Home DE,code,BULKCPN2-03,Nordic Home DE — Extra 10% Off,Second offer for Nordic Home DE bulk upload test.,10,percentage,2026-06-30,Copy Code,,true,false,false,50,https://www.nordichome.de
+4,StyleHub UK,code,BULKCPN2-04,StyleHub UK — Extra 10% Off,Second offer for StyleHub UK bulk upload test.,10,percentage,2026-06-30,Copy Code,,true,false,false,50,https://www.stylehub.co.uk
+5,TechNova US,code,BULKCPN2-05,TechNova US — Extra 10% Off,Second offer for TechNova US bulk upload test.,10,percentage,2026-06-30,Copy Code,,true,false,false,50,https://www.technova.com
+99999,Nonexistent Store XYZ,code,SKIP-999,Should Skip,This row should be skipped,10,percentage,2026-12-31,Get Code,,true,false,false,100,https://example.com
