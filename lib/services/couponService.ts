@@ -124,6 +124,7 @@ export async function getCoupons(): Promise<Coupon[]> {
     const { data, error } = await supabase
       .from('coupons')
       .select('*')
+      .order('updated_at', { ascending: false, nullsFirst: false })
       .order('created_at', { ascending: false })
 
     if (error) {

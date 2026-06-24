@@ -1,20 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getCategories, Category } from "@/lib/services/categoryService";
-import { getTrendingStores, getStores, Store } from "@/lib/services/storeService";
+import { getActiveCoupons, Coupon } from "@/lib/services/couponService";
+import { getStores, Store } from "@/lib/services/storeService";
 import { getFavoritesCount } from "@/lib/services/favoritesService";
 import { getUnreadCount, initializeSampleNotifications } from "@/lib/services/notificationsService";
 import { motion, AnimatePresence, useScroll, useMotionValueEvent } from "framer-motion";
 import {
   Search, Menu, X, ChevronDown, User,
-  Phone, Heart, ShoppingBag, Moon,
+  Phone, Heart, Moon, Tag,
   MapPin, ChevronLeft, ChevronRight, Facebook, Twitter, Instagram, Youtube
 } from "lucide-react";
 import CategoryIcon from "@/app/components/CategoryIcon";
 import { categoryIconBgClass } from "@/lib/utils/categoryIcon";
+import {
+  filterCategoriesForSearch,
+  filterCouponsForSearch,
+  filterStoresForSearch,
+  getCouponLabel,
+  getCouponSubtitle,
+} from "@/lib/utils/search";
 
 // Helper function to get favicon URL from store data
 const getStoreFaviconUrl = (store: Store): string => {
@@ -60,18 +68,21 @@ export default function Navbar() {
 
   // Data State
   const [categories, setCategories] = useState<Category[]>([]);
-  const [trendingStores, setTrendingStores] = useState<Store[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [allStores, setAllStores] = useState<Store[]>([]);
+  const [allCoupons, setAllCoupons] = useState<Coupon[]>([]);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [notificationsCount, setNotificationsCount] = useState(0);
   const [promoIndex, setPromoIndex] = useState(0);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const searchRequestRef = useRef(0);
   const [searchResults, setSearchResults] = useState<{
     stores: Store[];
     categories: Category[];
-  }>({ stores: [], categories: [] });
+    coupons: Coupon[];
+  }>({ stores: [], categories: [], coupons: [] });
 
   const { scrollY } = useScroll();
 
@@ -90,12 +101,28 @@ export default function Navbar() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [cats, stores] = await Promise.all([
+        const [cats, stores, activeCoupons, supabaseCouponsRes] = await Promise.all([
           getCategories(),
-          getStores()
+          getStores(),
+          getActiveCoupons(),
+          fetch('/api/coupons/supabase')
+            .then((res) => res.json())
+            .catch(() => ({ coupons: [] })),
         ]);
+
         setCategories(cats);
-        setTrendingStores(stores);
+        setAllStores(stores);
+
+        const supabaseCoupons: Coupon[] = Array.isArray(supabaseCouponsRes?.coupons)
+          ? supabaseCouponsRes.coupons
+          : [];
+        const couponMap = new Map<string, Coupon>();
+        [...activeCoupons, ...supabaseCoupons].forEach((coupon) => {
+          if (coupon.id && coupon.isActive !== false) {
+            couponMap.set(coupon.id, coupon);
+          }
+        });
+        setAllCoupons(Array.from(couponMap.values()));
       } catch (error) {
         console.error('Error fetching navbar data:', error);
       }
@@ -133,44 +160,227 @@ export default function Navbar() {
     }
   };
 
-  // Handle search input change and filter results
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-
-    if (value.trim().length > 0) {
-      const searchTerm = value.toLowerCase().trim();
-
-      // Filter stores
-      const filteredStores = trendingStores.filter(store =>
-        store.name.toLowerCase().includes(searchTerm)
-      ).slice(0, 5);
-
-      // Filter categories
-      const filteredCategories = categories.filter(cat =>
-        cat.name.toLowerCase().includes(searchTerm)
-      ).slice(0, 3);
-
-      setSearchResults({
-        stores: filteredStores,
-        categories: filteredCategories
-      });
-      setShowSuggestions(true);
-    } else {
+  const runSearch = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) {
       setShowSuggestions(false);
-      setSearchResults({ stores: [], categories: [] });
+      setSearchResults({ stores: [], categories: [], coupons: [] });
+      setSearchLoading(false);
+      return;
     }
+
+    const localResults = {
+      stores: filterStoresForSearch(allStores, trimmed, 5),
+      categories: filterCategoriesForSearch(categories, trimmed, 3),
+      coupons: filterCouponsForSearch(allCoupons, trimmed, allStores, 6),
+    };
+
+    const hasLocalResults =
+      localResults.stores.length > 0 ||
+      localResults.categories.length > 0 ||
+      localResults.coupons.length > 0;
+
+    if (hasLocalResults) {
+      setSearchResults(localResults);
+      setShowSuggestions(true);
+    }
+
+    const requestId = ++searchRequestRef.current;
+    setSearchLoading(true);
+
+    window.setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search/suggest?q=${encodeURIComponent(trimmed)}`, {
+          cache: 'no-store',
+        });
+        const data = await res.json();
+
+        if (requestId !== searchRequestRef.current) return;
+        if (!data?.success) return;
+
+        setSearchResults(data.results);
+        setShowSuggestions(
+          data.results.stores.length > 0 ||
+          data.results.categories.length > 0 ||
+          data.results.coupons.length > 0
+        );
+      } catch (error) {
+        console.error('Search suggest fetch failed:', error);
+      } finally {
+        if (requestId === searchRequestRef.current) {
+          setSearchLoading(false);
+        }
+      }
+    }, 150);
   };
 
-  const handleSuggestionClick = (type: 'store' | 'category', item: Store | Category) => {
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      runSearch(searchQuery);
+    }
+  }, [allStores, allCoupons, categories]);
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    runSearch(value);
+  };
+
+  const handleSuggestionClick = (type: 'store' | 'category' | 'coupon', item: Store | Category | Coupon) => {
     setShowSuggestions(false);
+    setMobileMenuOpen(false);
     if (type === 'store') {
       const store = item as Store;
       router.push(`/stores/${store.slug || store.id}`);
-    } else {
+    } else if (type === 'category') {
       const category = item as Category;
       router.push(`/categories/${category.id}`);
+    } else {
+      const coupon = item as Coupon;
+      const storeId = coupon.storeIds?.[0];
+      if (storeId) {
+        router.push(`/coupons?store=${storeId}`);
+      } else if (coupon.storeName) {
+        router.push(`/search?q=${encodeURIComponent(coupon.storeName)}`);
+      } else {
+        router.push(`/search?q=${encodeURIComponent(coupon.code || searchQuery.trim())}`);
+      }
     }
     setSearchQuery('');
+  };
+
+  const hasSearchResults =
+    searchResults.stores.length > 0 ||
+    searchResults.categories.length > 0 ||
+    searchResults.coupons.length > 0;
+
+  const renderSearchSuggestions = (variant: 'desktop' | 'mobile') => {
+    const containerClass =
+      variant === 'desktop'
+        ? 'absolute top-[calc(100%+8px)] left-0 right-0 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-[200] max-h-96 overflow-y-auto'
+        : 'mt-2 rounded-xl border border-white/20 bg-white text-gray-900 shadow-xl overflow-hidden max-h-72 overflow-y-auto';
+
+    return (
+      <div className={containerClass}>
+        {searchLoading && !hasSearchResults && (
+          <div className="px-4 py-3 text-sm text-gray-500">Searching...</div>
+        )}
+        {searchResults.stores.length > 0 && (
+          <div className="p-2">
+            <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Stores</div>
+            {searchResults.stores.map((store) => (
+              <button
+                key={store.id}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSuggestionClick('store', store)}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-full border border-gray-100 bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <img
+                    src={store.logoUrl || getStoreFaviconUrl(store)}
+                    alt={store.name}
+                    className="w-8 h-8 object-contain"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      const faviconUrl = getStoreFaviconUrl(store);
+                      if (target.src !== faviconUrl && store.logoUrl) {
+                        target.src = faviconUrl;
+                      } else {
+                        target.style.display = 'none';
+                        const parent = target.parentElement;
+                        if (parent) {
+                          parent.innerHTML = `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#0B453C] to-emerald-600 flex items-center justify-center text-white text-sm font-bold">${store.name.charAt(0).toUpperCase()}</div>`;
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-gray-900 truncate">{store.name}</div>
+                  {store.description && (
+                    <div className="text-xs text-gray-500 truncate">{store.description}</div>
+                  )}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {searchResults.coupons.length > 0 && (
+          <div className={`p-2 ${searchResults.stores.length > 0 ? 'border-t border-gray-100' : ''}`}>
+            <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Coupons</div>
+            {searchResults.coupons.map((coupon) => (
+              <button
+                key={coupon.id}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSuggestionClick('coupon', coupon)}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+              >
+                <div className="w-10 h-10 rounded-full border border-gray-100 bg-[#f0fdf4] flex items-center justify-center overflow-hidden flex-shrink-0">
+                  {coupon.logoUrl ? (
+                    <img
+                      src={coupon.logoUrl}
+                      alt={getCouponLabel(coupon)}
+                      className="w-8 h-8 object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <Tag className="w-4 h-4 text-[#0B453C]" />
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-gray-900 truncate">{getCouponLabel(coupon)}</div>
+                  <div className="text-xs text-gray-500 truncate">{getCouponSubtitle(coupon)}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {searchResults.categories.length > 0 && (
+          <div className={`p-2 ${searchResults.stores.length > 0 || searchResults.coupons.length > 0 ? 'border-t border-gray-100' : ''}`}>
+            <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Categories</div>
+            {searchResults.categories.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => handleSuggestionClick('category', category)}
+                className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
+              >
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${categoryIconBgClass}`}>
+                  <CategoryIcon
+                    logoUrl={category.logoUrl}
+                    name={category.name}
+                    imgClassName="w-6 h-6 object-contain brightness-0"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-sm text-gray-900 truncate">{category.name}</div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="p-2 border-t border-gray-100">
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => {
+              setShowSuggestions(false);
+              handleSearch({ preventDefault: () => {} } as React.FormEvent);
+            }}
+            className="w-full px-3 py-2 text-sm font-semibold text-[#0B453C] hover:bg-green-50 rounded-lg transition-colors text-center"
+          >
+            View all results for &quot;{searchQuery}&quot;
+          </button>
+        </div>
+      </div>
+    );
   };
 
   // --- Dropdown Components ---
@@ -202,7 +412,7 @@ export default function Navbar() {
   const StoresMenu = () => (
     <div className="grid grid-cols-4 gap-4 p-5 w-[650px] bg-white rounded-b-xl shadow-xl border border-gray-100 mt-2">
       <div className="col-span-3 grid grid-cols-2 gap-x-6 gap-y-2">
-        {trendingStores.slice(0, 10).map((store) => (
+        {allStores.slice(0, 10).map((store) => (
           <Link key={store.id} href={store.slug ? `/stores/${store.slug}` : `/stores/${store.id}`} className="flex items-center gap-2 group/item p-1.5 hover:bg-gray-50 rounded-lg transition-colors">
             <div className="w-8 h-8 rounded-full border border-gray-100 bg-white flex items-center justify-center overflow-hidden">
               <img
@@ -323,9 +533,9 @@ export default function Navbar() {
       </div>
 
       {/* 2. MIDDLE BAR (Teal - Compact) */}
-      <div className="bg-[#0B453C] py-2 border-b border-[#0f5c4e] relative z-[110] font-sans w-full overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0">
-          <div className="flex items-center justify-between gap-4 lg:gap-8">
+      <div className="bg-[#0B453C] py-2 border-b border-[#0f5c4e] relative z-[110] font-sans w-full overflow-visible">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 min-w-0 overflow-visible">
+          <div className="flex items-center justify-between gap-4 lg:gap-8 overflow-visible">
 
             <Link href="/" className="flex-shrink-0 flex items-center gap-0.5">
               <img
@@ -340,7 +550,7 @@ export default function Navbar() {
             </Link>
 
 
-            <div className="hidden lg:flex flex-1 max-w-2xl mx-auto relative">
+            <div className="hidden lg:flex flex-1 max-w-2xl mx-auto relative z-[120]">
               <form onSubmit={handleSearch} className="flex w-full bg-white rounded-full p-1 shadow-lg items-center relative z-20 h-[46px]">
                 <div className="pl-4 pr-2 flex items-center">
                   <Search className="w-4 h-4 text-gray-400" />
@@ -360,90 +570,7 @@ export default function Navbar() {
               </form>
 
               {/* Search Suggestions Dropdown */}
-              {showSuggestions && (searchResults.stores.length > 0 || searchResults.categories.length > 0) && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-[150] max-h-96 overflow-y-auto">
-                  {/* Stores Section */}
-                  {searchResults.stores.length > 0 && (
-                    <div className="p-2">
-                      <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Stores</div>
-                      {searchResults.stores.map((store) => (
-                        <button
-                          key={store.id}
-                          onClick={() => handleSuggestionClick('store', store)}
-                          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
-                        >
-                          <div className="w-10 h-10 rounded-full border border-gray-100 bg-white flex items-center justify-center overflow-hidden flex-shrink-0">
-                            <img
-                              src={store.logoUrl || getStoreFaviconUrl(store)}
-                              alt={store.name}
-                              className="w-8 h-8 object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                const faviconUrl = getStoreFaviconUrl(store);
-                                if (target.src !== faviconUrl && store.logoUrl) {
-                                  target.src = faviconUrl;
-                                } else {
-                                  target.style.display = 'none';
-                                  const parent = target.parentElement;
-                                  if (parent) {
-                                    parent.innerHTML = `<div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#0B453C] to-emerald-600 flex items-center justify-center text-white text-sm font-bold">${store.name.charAt(0).toUpperCase()}</div>`;
-                                  }
-                                }
-                              }}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm text-gray-900 truncate">{store.name}</div>
-                            {store.description && (
-                              <div className="text-xs text-gray-500 truncate">{store.description}</div>
-                            )}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Categories Section */}
-                  {searchResults.categories.length > 0 && (
-                    <div className="p-2 border-t border-gray-100">
-                      <div className="px-3 py-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Categories</div>
-                      {searchResults.categories.map((category) => (
-                        <button
-                          key={category.id}
-                          onClick={() => handleSuggestionClick('category', category)}
-                          className="w-full flex items-center gap-3 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors text-left"
-                        >
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${categoryIconBgClass}`}
-                          >
-                            <CategoryIcon
-                              logoUrl={category.logoUrl}
-                              name={category.name}
-                              imgClassName="w-6 h-6 object-contain brightness-0"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-sm text-gray-900 truncate">{category.name}</div>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* View All Results */}
-                  <div className="p-2 border-t border-gray-100">
-                    <button
-                      onClick={() => {
-                        setShowSuggestions(false);
-                        handleSearch({ preventDefault: () => { } } as React.FormEvent);
-                      }}
-                      className="w-full px-3 py-2 text-sm font-semibold text-[#0B453C] hover:bg-green-50 rounded-lg transition-colors text-center"
-                    >
-                      View all results for "{searchQuery}"
-                    </button>
-                  </div>
-                </div>
-              )}
+              {showSuggestions && (hasSearchResults || searchLoading) && renderSearchSuggestions('desktop')}
             </div>
 
             <div className="flex items-center gap-6 text-white">
@@ -545,28 +672,32 @@ export default function Navbar() {
             </div>
 
             <div className="flex-1 overflow-y-auto px-4 py-6">
-              <form
-                onSubmit={(e) => {
-                  handleSearch(e);
-                  closeMobileMenu();
-                }}
-                className="mb-6 flex w-full items-center rounded-full border border-white/25 bg-white/10 p-1"
-              >
-                <input
-                  type="text"
-                  placeholder="Search stores, coupons..."
-                  className="flex-1 bg-transparent px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50"
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                />
-                <button
-                  type="submit"
-                  className="mr-1 rounded-full bg-white/15 p-2.5 text-white hover:bg-white/25 transition-colors"
-                  aria-label="Search"
+              <div className="relative mb-6">
+                <form
+                  onSubmit={(e) => {
+                    handleSearch(e);
+                    closeMobileMenu();
+                  }}
+                  className="flex w-full items-center rounded-full border border-white/25 bg-white/10 p-1"
                 >
-                  <Search className="h-4 w-4" />
-                </button>
-              </form>
+                  <input
+                    type="text"
+                    placeholder="Search stores, coupons..."
+                    className="flex-1 bg-transparent px-4 py-2.5 text-sm text-white outline-none placeholder:text-white/50"
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    onFocus={() => searchQuery.trim().length > 0 && setShowSuggestions(true)}
+                  />
+                  <button
+                    type="submit"
+                    className="mr-1 rounded-full bg-white/15 p-2.5 text-white hover:bg-white/25 transition-colors"
+                    aria-label="Search"
+                  >
+                    <Search className="h-4 w-4" />
+                  </button>
+                </form>
+                {showSuggestions && (hasSearchResults || searchLoading) && renderSearchSuggestions('mobile')}
+              </div>
 
               <nav className="space-y-1">
                 {navLinks.map((link) => (

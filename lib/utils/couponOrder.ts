@@ -2,6 +2,18 @@ export interface OrderedCoupon {
   id?: string;
 }
 
+/** Sort coupons with most recently added/edited first. */
+export function sortCouponsByRecentActivity<
+  T extends { updatedAt?: string; createdAt?: string; id?: string }
+>(coupons: T[]): T[] {
+  return [...coupons].sort((a, b) => {
+    const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    if (bTime !== aTime) return bTime - aTime;
+    return String(b.id || '').localeCompare(String(b.id || ''));
+  });
+}
+
 /** Sort coupons by store's saved coupon_order; unknown coupons go to the end. */
 export function sortCouponsByOrder<T extends OrderedCoupon>(
   coupons: T[],

@@ -3,9 +3,10 @@
 import { useEffect, useState, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { getCoupons, Coupon } from '@/lib/services/couponService';
+import { getActiveCoupons, Coupon } from '@/lib/services/couponService';
 import { getStores, Store } from '@/lib/services/storeService';
 import { getCategories, Category } from '@/lib/services/categoryService';
+import { filterCouponsForSearch, filterStoresForSearch } from '@/lib/utils/search';
 import Navbar from '@/app/components/Navbar';
 import Breadcrumbs from '@/app/components/Breadcrumbs';
 import Newsletter from '@/app/components/Newsletter';
@@ -33,21 +34,38 @@ function SearchContent() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [couponsData, storesData, categoriesData, supabaseResponse] = await Promise.all([
-          getCoupons(),
+        const [activeCoupons, storesData, categoriesData, supabaseCouponsRes, supabaseStoresRes] = await Promise.all([
+          getActiveCoupons(),
           getStores(),
           getCategories(),
+          fetch('/api/coupons/supabase')
+            .then((res) => res.json())
+            .catch((err) => {
+              console.error('Error fetching Supabase coupons:', err);
+              return { success: false, coupons: [] };
+            }),
           fetch('/api/stores/supabase')
             .then((res) => res.json())
             .catch((err) => {
               console.error('Error fetching Supabase stores:', err);
               return { success: false, stores: [] };
-            })
+            }),
         ]);
-        const supabaseList: Store[] = Array.isArray(supabaseResponse?.stores)
-          ? (supabaseResponse.stores as Store[])
+
+        const supabaseCoupons: Coupon[] = Array.isArray(supabaseCouponsRes?.coupons)
+          ? supabaseCouponsRes.coupons
           : [];
-        setCoupons(couponsData.filter(c => c.isActive));
+        const couponMap = new Map<string, Coupon>();
+        [...activeCoupons, ...supabaseCoupons].forEach((coupon) => {
+          if (coupon.id && coupon.isActive !== false) {
+            couponMap.set(coupon.id, coupon);
+          }
+        });
+
+        const supabaseList: Store[] = Array.isArray(supabaseStoresRes?.stores)
+          ? supabaseStoresRes.stores
+          : [];
+        setCoupons(Array.from(couponMap.values()));
         setStores(storesData);
         setCategories(categoriesData);
         setSupabaseStores(supabaseList);
@@ -70,34 +88,18 @@ function SearchContent() {
 
     const searchTerm = query.toLowerCase().trim();
 
-    // Filter coupons
     let filteredC = coupons;
-
     if (categoryId) {
-      filteredC = filteredC.filter(c => c.categoryId === categoryId);
+      filteredC = filteredC.filter((c) => c.categoryId === categoryId);
     }
 
     if (searchTerm) {
-      filteredC = filteredC.filter(c =>
-        c.code?.toLowerCase().includes(searchTerm) ||
-        c.storeName?.toLowerCase().includes(searchTerm) ||
-        c.description?.toLowerCase().includes(searchTerm)
-      );
+      setFilteredCoupons(filterCouponsForSearch(filteredC, searchTerm, newStores, 100));
+      setFilteredStores(filterStoresForSearch(newStores, searchTerm, 100));
+    } else {
+      setFilteredCoupons(filteredC);
+      setFilteredStores(newStores);
     }
-
-    setFilteredCoupons(filteredC);
-
-    // Filter stores
-    let filteredS = newStores;
-
-    if (searchTerm) {
-      filteredS = filteredS.filter(s =>
-        s.name.toLowerCase().includes(searchTerm) ||
-        s.description.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    setFilteredStores(filteredS);
   }, [query, categoryId, coupons, newStores]);
 
   const selectedCategory = categories.find(c => c.id === categoryId);

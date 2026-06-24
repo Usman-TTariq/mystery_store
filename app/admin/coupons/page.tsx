@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   getCoupons,
   createCoupon,
@@ -13,6 +13,7 @@ import { getCategories, Category } from '@/lib/services/categoryService';
 import Link from 'next/link';
 import { extractOriginalCloudinaryUrl, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { getStores, Store } from '@/lib/services/storeService';
+import { sortCouponsByRecentActivity } from '@/lib/utils/couponOrder';
 
 export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -438,7 +439,7 @@ export default function CouponsPage() {
     setLoading(true);
     try {
       const couponsData = await getCoupons();
-      setCoupons(couponsData);
+      setCoupons(sortCouponsByRecentActivity(couponsData));
     } catch (err) {
       console.error('Error fetching coupons in admin fetchCoupons:', err);
       setCoupons([]);
@@ -457,7 +458,7 @@ export default function CouponsPage() {
           getStores(),
         ]);
 
-        setCoupons(couponsData);
+        setCoupons(sortCouponsByRecentActivity(couponsData));
         setCategories(categoriesData);
         setStores(storesData);
       } catch (err) {
@@ -654,6 +655,7 @@ export default function CouponsPage() {
       }
 
       if (result.success) {
+        setCurrentPage(1);
         fetchCoupons();
         if (addAnother) {
           alert('Coupon created! Add another coupon for the same store.');
@@ -894,13 +896,17 @@ export default function CouponsPage() {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  // Filter coupons based on search query
-  const filteredCoupons = searchQuery.trim() === ''
-    ? coupons
-    : coupons.filter(coupon =>
-      coupon.storeName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      coupon.code?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredCoupons = useMemo(() => {
+    const sorted = sortCouponsByRecentActivity(coupons);
+    if (searchQuery.trim() === '') return sorted;
+
+    const term = searchQuery.toLowerCase();
+    return sorted.filter(
+      (coupon) =>
+        coupon.storeName?.toLowerCase().includes(term) ||
+        coupon.code?.toLowerCase().includes(term)
     );
+  }, [coupons, searchQuery]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCoupons.length / pageSize));
   const paginatedCoupons = filteredCoupons.slice(
