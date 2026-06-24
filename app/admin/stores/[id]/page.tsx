@@ -112,7 +112,7 @@ export default function EditStorePage() {
       if (storeData) {
         setStore(storeData);
         setFormData(storeData);
-        setIsSupabaseStore(isSupabase);
+        setIsSupabaseStore(true);
         // Check if slug matches auto-generated slug from name
         const autoSlug = generateSlug(storeData.name || '');
         setAutoGenerateSlug(storeData.slug === autoSlug);
@@ -197,6 +197,10 @@ export default function EditStorePage() {
 
         const data = await res.json();
         if (res.ok && data.success) {
+          const synced = typeof data.syncedCoupons === 'number' ? data.syncedCoupons : 0;
+          if (updates.trackingLink !== undefined && synced > 0) {
+            alert(`Store saved! Coupon URL updated on ${synced} related coupon(s).`);
+          }
           router.push('/admin/stores');
         } else {
           alert(`Failed to update store in Supabase: ${data.error || 'Unknown error'}`);
@@ -206,9 +210,27 @@ export default function EditStorePage() {
         alert('Failed to update store. Check console for details.');
       }
     } else {
-      // Update via Firebase
       const result = await updateStore(storeId, updates);
       if (result.success) {
+        if (updates.trackingLink !== undefined) {
+          try {
+            const syncRes = await fetch('/api/stores/sync-coupon-urls', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                storeUuid: storeId,
+                storeName: updates.name,
+                trackingLink: updates.trackingLink ?? null,
+              }),
+            });
+            const syncData = await syncRes.json();
+            if (syncData.success && syncData.updatedCount > 0) {
+              alert(`Store saved! Coupon URL updated on ${syncData.updatedCount} related coupon(s).`);
+            }
+          } catch (syncErr) {
+            console.error('Failed to sync coupon URLs:', syncErr);
+          }
+        }
         router.push('/admin/stores');
       }
     }

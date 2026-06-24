@@ -12,6 +12,7 @@ import {
 import { getCategories, Category } from '@/lib/services/categoryService';
 import Link from 'next/link';
 import { extractOriginalCloudinaryUrl, isCloudinaryUrl } from '@/lib/utils/cloudinary';
+import { normalizeRedirectUrl } from '@/lib/utils/url';
 import { getStores, Store } from '@/lib/services/storeService';
 import { sortCouponsByRecentActivity } from '@/lib/utils/couponOrder';
 
@@ -504,6 +505,11 @@ export default function CouponsPage() {
     return `${y}-${m}-${d}`;
   };
 
+  const getStoreRedirectUrl = (store: Store): string => {
+    const raw = store.trackingLink || store.websiteUrl || '';
+    return normalizeRedirectUrl(raw) || '';
+  };
+
   const getStoreLogoUrl = (store: Store): string => {
     if (store.logoUrl?.trim()) return store.logoUrl;
     const siteUrl = store.trackingLink || store.websiteUrl;
@@ -623,6 +629,17 @@ export default function CouponsPage() {
     // Filter out any undefined/null values
     const validStoreIds = selectedStoreIds.filter(id => id && id.trim() !== '');
     couponData.storeIds = validStoreIds.length > 0 ? validStoreIds : [];
+
+    if (!couponData.url?.trim() && validStoreIds.length > 0) {
+      const firstStore = stores.find((s) => s.id === validStoreIds[0]);
+      if (firstStore) {
+        couponData.url = getStoreRedirectUrl(firstStore);
+      }
+    }
+
+    if (couponData.url) {
+      couponData.url = normalizeRedirectUrl(couponData.url);
+    }
 
     // Debug log
     console.log('📝 Creating coupon with data:', {
@@ -1231,6 +1248,7 @@ export default function CouponsPage() {
                                         // Auto-fetch logo from first selected store
                                         if (newSelectedIds.length === 1) {
                                           let logoToUse = '';
+                                          const redirectUrl = getStoreRedirectUrl(store);
 
                                           // Priority 1: Use store's logoUrl if available
                                           if (store.logoUrl && store.logoUrl.trim() !== '') {
@@ -1256,6 +1274,10 @@ export default function CouponsPage() {
                                             handleLogoUrlChange(logoToUse);
                                             setLogoUploadMethod('url');
                                             console.log('✅ Auto-populated logo:', logoToUse);
+                                          }
+
+                                          if (redirectUrl) {
+                                            setFormData((prev) => ({ ...prev, url: redirectUrl }));
                                           }
                                         }
                                       } else {
