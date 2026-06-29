@@ -913,6 +913,18 @@ export default function CouponsPage() {
     setCurrentPage(1);
   }, [searchQuery]);
 
+  const getCouponStoreDisplayName = (coupon: Coupon): string => {
+    if (coupon.storeIds && coupon.storeIds.length > 0) {
+      const linkedNames = coupon.storeIds
+        .map((storeId) => stores.find((s) => s.id === storeId)?.name)
+        .filter((name): name is string => Boolean(name));
+      if (linkedNames.length > 0) {
+        return linkedNames.join(', ');
+      }
+    }
+    return coupon.storeName || 'N/A';
+  };
+
   const filteredCoupons = useMemo(() => {
     const sorted = sortCouponsByRecentActivity(coupons);
     if (searchQuery.trim() === '') return sorted;
@@ -920,10 +932,10 @@ export default function CouponsPage() {
     const term = searchQuery.toLowerCase();
     return sorted.filter(
       (coupon) =>
-        coupon.storeName?.toLowerCase().includes(term) ||
+        getCouponStoreDisplayName(coupon).toLowerCase().includes(term) ||
         coupon.code?.toLowerCase().includes(term)
     );
-  }, [coupons, searchQuery]);
+  }, [coupons, searchQuery, stores]);
 
   const totalPages = Math.max(1, Math.ceil(filteredCoupons.length / pageSize));
   const paginatedCoupons = filteredCoupons.slice(
@@ -1973,7 +1985,7 @@ export default function CouponsPage() {
                 {paginatedCoupons.map((coupon) => (
                   <tr key={coupon.id} className="border-b hover:bg-gray-50">
                     <td className="px-4 sm:px-6 py-4 text-sm font-semibold text-gray-900">
-                      {coupon.storeName || 'N/A'}
+                      {getCouponStoreDisplayName(coupon)}
                     </td>
                     <td className="px-4 sm:px-6 py-4 font-mono font-semibold text-xs sm:text-sm">
                       {coupon.code || 'N/A'}

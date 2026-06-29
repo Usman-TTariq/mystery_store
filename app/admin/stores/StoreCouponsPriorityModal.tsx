@@ -157,15 +157,25 @@ export default function StoreCouponsPriorityModal({ store, onClose }: StoreCoupo
                       Expires: {formatExpiry(coupon.expiryDate)}
                     </p>
                   </div>
-                  <span
-                    className={`shrink-0 inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                      coupon.isActive
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-gray-100 text-gray-600'
-                    }`}
-                  >
-                    {coupon.isActive ? 'Active' : 'Inactive'}
-                  </span>
+                  <div className="shrink-0 flex flex-col items-end gap-1">
+                    <span
+                      className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
+                        coupon.isActive
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-gray-100 text-gray-600'
+                      }`}
+                    >
+                      {coupon.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                    <Link
+                      href={`/admin/coupons/${coupon.id}`}
+                      className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
+                      onMouseDown={(e) => e.stopPropagation()}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Edit
+                    </Link>
+                  </div>
                 </li>
               ))}
             </ul>
