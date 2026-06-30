@@ -1,0 +1,7 @@
+store_id,Store Name,couponType,code,title,description,discount,discountType,expiryDate,maxUses,url,isActive,isLatest,isPopular
+511,Cleva FR,code,TOOCLEVA,10% de réduction sur tout le site,,10,percentage,2026-12-31,100,https://www.linkhexa.com/go/short/example,true,false,false
+511,Cleva FR,deal,,Livraison gratuite sur votre commande,,0,percentage,2026-12-31,100,,true,false,false
+511,Cleva FR,deal,,10 % de réduction sur votre première commande,,10,percentage,,100,,true,false,false
+506,Sunshine Tienda US,code,SUNSHINE15,15% off sitewide,,15,percentage,2026-12-31,100,,true,false,false
+506,Sunshine Tienda US,deal,,Free shipping on orders over $50,,0,percentage,,100,,true,false,false
+502,Shedstore UK,deal,,10% off selected garden sheds,,10,percentage,2026-12-31,100,,true,false,false

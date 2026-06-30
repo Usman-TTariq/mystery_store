@@ -1042,7 +1042,9 @@ export default function CouponsPage() {
                   </ul>
                 </div>
                 <p className="text-xs text-gray-500">
-                  All other columns (url, description, discount, etc.) are optional. Expiry date is auto-set to 31 Dec if omitted.
+                  Optional columns: store_id, url (affiliate/tracking link — also saved on auto-created stores), description, discount, discountType, expiryDate, maxUses, isActive, isLatest, isPopular.
+                  Expiry auto-set to 31 Dec if empty. Get Code / Get Deal buttons are automatic — do not add getCodeText or getDealText columns.
+                  Template file: <code className="text-[11px]">data/coupons-bulk-upload-template.csv</code>
                 </p>
               </div>
 
