@@ -8,43 +8,8 @@ import Breadcrumbs from '@/app/components/Breadcrumbs';
 import Newsletter from '@/app/components/Newsletter';
 import Footer from '@/app/components/Footer';
 import PageHeroBanner from '@/app/components/PageHeroBanner';
+import StoreLogo from '@/app/components/StoreLogo';
 import { Filter, Search, X } from 'lucide-react';
-
-// Helper function to get favicon URL from store data
-const getStoreFaviconUrl = (store: Store): string => {
-  // Try to extract domain from websiteUrl or trackingLink
-  let domain = '';
-
-  if (store.websiteUrl) {
-    try {
-      domain = new URL(store.websiteUrl).hostname.replace('www.', '');
-    } catch (e) {
-      console.error('Invalid websiteUrl:', store.websiteUrl);
-    }
-  } else if (store.trackingLink) {
-    try {
-      domain = new URL(store.trackingLink).hostname.replace('www.', '');
-    } catch (e) {
-      console.error('Invalid trackingLink:', store.trackingLink);
-    }
-  }
-
-  // If no domain found, try to construct from store name
-  if (!domain && store.name) {
-    // Check if name already looks like a domain (contains a dot)
-    const nameLower = store.name.toLowerCase();
-    if (nameLower.includes('.')) {
-      // Name already looks like a domain, use it as-is
-      domain = nameLower.replace(/\s+/g, '');
-    } else {
-      // Convert store name to potential domain (e.g., "SamBoat" -> "samboat.com")
-      domain = nameLower.replace(/\s+/g, '') + '.com';
-    }
-  }
-
-  // Return Google's favicon service URL
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-};
 
 export default function StoresPage() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -67,10 +32,17 @@ export default function StoresPage() {
       if (!uniqueStoresMap.has(uniqueKey)) {
         uniqueStoresMap.set(uniqueKey, store);
       } else {
-        // If duplicate found, prefer the one with more complete data (has logoUrl)
         const existing = uniqueStoresMap.get(uniqueKey);
-        if (existing && !existing.logoUrl && store.logoUrl) {
-          uniqueStoresMap.set(uniqueKey, store);
+        if (existing) {
+          uniqueStoresMap.set(uniqueKey, {
+            ...existing,
+            ...store,
+            logoUrl: store.logoUrl || existing.logoUrl,
+            websiteUrl: store.websiteUrl || existing.websiteUrl,
+            trackingLink: store.trackingLink || existing.trackingLink,
+            country: store.country || existing.country,
+            categoryId: store.categoryId ?? existing.categoryId,
+          });
         }
       }
     });
@@ -364,23 +336,15 @@ export default function StoresPage() {
                   >
                     <div className="aspect-[4/3] px-3 pt-3 pb-1.5 flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-50">
                       <div className="w-full h-full flex items-center justify-center">
-                        <img
-                          src={store.logoUrl || getStoreFaviconUrl(store)}
-                          alt={store.name}
-                          className="max-w-full max-h-full object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            const faviconUrl = getStoreFaviconUrl(store);
-                            if (target.src !== faviconUrl && store.logoUrl) {
-                              target.src = faviconUrl;
-                            } else {
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.innerHTML = `<div class="text-gray-400 text-[10px] text-center font-semibold line-clamp-2">${store.name}</div>`;
-                              }
-                            }
-                          }}
+                        <StoreLogo
+                          name={store.name}
+                          logoUrl={store.logoUrl}
+                          websiteUrl={store.websiteUrl}
+                          trackingLink={store.trackingLink}
+                          slug={store.slug}
+                          className="w-full h-full max-h-24"
+                          imgClassName="max-w-full max-h-full object-contain"
+                          fallbackClassName="w-12 h-12 rounded-full bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] flex items-center justify-center text-white text-lg font-bold"
                         />
                       </div>
                     </div>
@@ -414,25 +378,15 @@ export default function StoresPage() {
                         {/* Logo Section */}
                         <div className="aspect-[4/3] px-4 pt-3 pb-1.5 sm:px-5 sm:pt-4 sm:pb-2 flex flex-col items-center justify-center relative bg-gradient-to-br from-gray-50 via-white to-gray-50 transition-all duration-500 flex-shrink-0">
                           <div className="w-full h-full flex items-center justify-center transform group-hover:scale-110 transition-transform duration-500">
-                            <img
-                              src={store.logoUrl || getStoreFaviconUrl(store)}
-                              alt={store.name}
-                              className="max-w-full max-h-full object-contain drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-500"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                // If logoUrl failed, try favicon
-                                const faviconUrl = getStoreFaviconUrl(store);
-                                if (target.src !== faviconUrl && store.logoUrl) {
-                                  target.src = faviconUrl;
-                                } else {
-                                  // If both failed, show gradient badge
-                                  target.style.display = 'none';
-                                  const parent = target.parentElement;
-                                  if (parent) {
-                                    parent.innerHTML = `<div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg">${store.name.charAt(0).toUpperCase()}</div>`;
-                                  }
-                                }
-                              }}
+                            <StoreLogo
+                              name={store.name}
+                              logoUrl={store.logoUrl}
+                              websiteUrl={store.websiteUrl}
+                              trackingLink={store.trackingLink}
+                              slug={store.slug}
+                              className="w-full h-full max-h-28"
+                              imgClassName="max-w-full max-h-full object-contain drop-shadow-lg group-hover:drop-shadow-xl transition-all duration-500"
+                              fallbackClassName="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center text-white text-lg sm:text-2xl font-bold shadow-lg"
                             />
                           </div>
                         </div>

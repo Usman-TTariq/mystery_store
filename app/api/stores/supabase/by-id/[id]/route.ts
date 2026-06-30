@@ -14,6 +14,7 @@ interface SupabaseStoreRow {
   subStoreName?: string | null;
   tracking_link?: string | null;
   country?: string | null;
+  category_id?: string | null;
 }
 
 export async function GET(
@@ -73,6 +74,8 @@ export async function PATCH(
     if (body.isTrending !== undefined) updates.isTrending = body.isTrending;
     if (body.tracking_link !== undefined) updates.tracking_link = body.tracking_link;
     if (body.country !== undefined) updates.country = body.country;
+    if (body.categoryId !== undefined) updates.category_id = body.categoryId || null;
+    if (body.category_id !== undefined) updates.category_id = body.category_id || null;
 
     const fieldCount = Object.keys(updates).length;
     if (fieldCount <= 1) {

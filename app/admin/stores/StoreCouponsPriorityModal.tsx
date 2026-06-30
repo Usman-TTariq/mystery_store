@@ -4,25 +4,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { GripVertical, X } from 'lucide-react';
 import type { Store } from '@/lib/services/storeService';
+import { formatCouponExpiryDisplay } from '@/lib/utils/couponExpiry';
 
 interface StoreCouponRow {
   id: string;
   title: string;
   code: string;
+  couponType: 'code' | 'deal';
   isActive: boolean;
   expiryDate: string | null;
+}
+
+function formatCouponTypeLabel(coupon: StoreCouponRow): string {
+  if (coupon.couponType === 'deal') return 'Deal';
+  if (coupon.code?.trim()) return `Code: ${coupon.code.trim()}`;
+  return 'No code';
 }
 
 interface StoreCouponsPriorityModalProps {
   store: Store;
   onClose: () => void;
-}
-
-function formatExpiry(value: string | null): string {
-  if (!value) return '—';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
 export default function StoreCouponsPriorityModal({ store, onClose }: StoreCouponsPriorityModalProps) {
@@ -152,9 +153,9 @@ export default function StoreCouponsPriorityModal({ store, onClose }: StoreCoupo
                   <div className="min-w-0 flex-1">
                     <p className="font-medium text-gray-900 truncate">{coupon.title}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      {coupon.code ? `Code: ${coupon.code}` : 'No code'}
+                      {formatCouponTypeLabel(coupon)}
                       {' · '}
-                      Expires: {formatExpiry(coupon.expiryDate)}
+                      Expires: {formatCouponExpiryDisplay(coupon.expiryDate)}
                     </p>
                   </div>
                   <div className="shrink-0 flex flex-col items-end gap-1">
@@ -168,7 +169,7 @@ export default function StoreCouponsPriorityModal({ store, onClose }: StoreCoupo
                       {coupon.isActive ? 'Active' : 'Inactive'}
                     </span>
                     <Link
-                      href={`/admin/coupons/${coupon.id}`}
+                      href={`/admin/coupons/${coupon.id}?returnStore=${encodeURIComponent(store.id || '')}`}
                       className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 hover:bg-blue-200 transition-colors"
                       onMouseDown={(e) => e.stopPropagation()}
                       onClick={(e) => e.stopPropagation()}

@@ -1,31 +1,43 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   Coupon,
 } from '@/lib/services/couponService';
 import { getCategories, Category } from '@/lib/services/categoryService';
 import { extractOriginalCloudinaryUrl, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { normalizeRedirectUrl } from '@/lib/utils/url';
+import { resolveCouponExpiryDate, formatCouponExpiryDisplay } from '@/lib/utils/couponExpiry';
 import { getStores, Store } from '@/lib/services/storeService';
-
-const toDateInputValue = (date: string | null | undefined): string => {
-  if (!date) return '';
-  const match = String(date).match(/^(\d{4}-\d{2}-\d{2})/);
-  if (match) return match[1];
-  const parsed = new Date(date);
-  if (Number.isNaN(parsed.getTime())) return '';
-  const y = parsed.getFullYear();
-  const m = String(parsed.getMonth() + 1).padStart(2, '0');
-  const d = String(parsed.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-};
 
 export default function EditCouponPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const couponId = params.id as string;
+  const returnStoreId = searchParams.get('returnStore')?.trim() || '';
+  const returnToStoreCoupons = returnStoreId
+    ? `/admin/stores?openCoupons=${encodeURIComponent(returnStoreId)}`
+    : null;
+
+  const returnToCouponsList = (() => {
+    const params = new URLSearchParams();
+    const listSearch = searchParams.get('search')?.trim();
+    const listPage = searchParams.get('page')?.trim();
+    if (listSearch) params.set('search', listSearch);
+    if (listPage) params.set('page', listPage);
+    const qs = params.toString();
+    return qs ? `/admin/coupons?${qs}` : '/admin/coupons';
+  })();
+
+  const navigateBack = () => {
+    if (returnToStoreCoupons) {
+      router.push(returnToStoreCoupons);
+    } else {
+      router.push(returnToCouponsList);
+    }
+  };
 
   const [coupon, setCoupon] = useState<Coupon | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -138,7 +150,7 @@ export default function EditCouponPage() {
       couponType: formData.couponType || 'code',
       maxUses: formData.maxUses ?? 0,
       currentUses: formData.currentUses ?? 0,
-      expiryDate: formData.expiryDate ?? null,
+      expiryDate: resolveCouponExpiryDate(formData.expiryDate),
       url: normalizedUrl,
       categoryId: formData.categoryId ?? null,
       isActive: formData.isActive ?? true,
@@ -146,8 +158,8 @@ export default function EditCouponPage() {
       isPopular: formData.isPopular ?? false,
       latestLayoutPosition: formData.isLatest ? formData.latestLayoutPosition ?? null : null,
       layoutPosition: formData.isPopular ? formData.layoutPosition ?? null : null,
-      getCodeText: formData.getCodeText ?? null,
-      getDealText: formData.getDealText ?? null,
+      getCodeText: null,
+      getDealText: null,
       logoUrl: logoUrlToSave ?? null,
     };
 
@@ -176,7 +188,7 @@ export default function EditCouponPage() {
         setRedirectUrl(savedUrl);
         setFormData((prev) => ({ ...prev, url: savedUrl }));
         alert(`Coupon saved! Redirect URL: ${savedUrl || '(none)'}`);
-        router.push('/admin/coupons');
+        router.push(returnToStoreCoupons || returnToCouponsList);
       } else {
         alert(`Failed to update coupon: ${data.error || 'Unknown error'}`);
       }
@@ -210,7 +222,7 @@ export default function EditCouponPage() {
     <div>
       <div className="mb-6">
         <button
-          onClick={() => router.back()}
+          onClick={navigateBack}
           className="text-blue-600 hover:text-blue-800 font-semibold"
         >
           ← Back
@@ -380,54 +392,16 @@ export default function EditCouponPage() {
               </label>
             </div>
             <p className="mt-1 text-xs text-gray-500">
-              Select whether this is a coupon code or a deal. Frontend will show "Get Code" for codes and "Get Deal" for deals.
+              Select whether this is a coupon code or a deal. The site button is set automatically.
             </p>
-          </div>
-
-          {/* Custom Button Text Fields */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {formData.couponType === 'code' && (
-              <div>
-                <label htmlFor="getCodeText" className="block text-gray-700 text-sm font-semibold mb-2">
-                  Custom "Get Code" Button Text (Optional)
-                </label>
-                <input
-                  id="getCodeText"
-                  name="getCodeText"
-                  type="text"
-                  placeholder='e.g., "Obtenir le code", "Obtener código", "कोड प्राप्त करें"'
-                  value={formData.getCodeText || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, getCodeText: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Leave empty to use default "Get Code". Set custom text for any language.
-                </p>
-              </div>
-            )}
-            {formData.couponType === 'deal' && (
-              <div>
-                <label htmlFor="getDealText" className="block text-gray-700 text-sm font-semibold mb-2">
-                  Custom "Get Deal" Button Text (Optional)
-                </label>
-                <input
-                  id="getDealText"
-                  name="getDealText"
-                  type="text"
-                  placeholder="e.g., Obtenir l'offre, Obtener oferta, ऑफर प्राप्त करें"
-                  value={formData.getDealText || ''}
-                  onChange={(e) =>
-                    setFormData({ ...formData, getDealText: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Leave empty to use default "Get Deal". Set custom text for any language.
-                </p>
-              </div>
-            )}
+            <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+              <p className="text-sm text-gray-700">
+                Site button:{' '}
+                <span className="font-semibold">
+                  {formData.couponType === 'code' ? 'Get Code' : 'Get Deal'}
+                </span>
+              </p>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -494,25 +468,17 @@ export default function EditCouponPage() {
               />
             </div>
             <div>
-              <label htmlFor="expiryDate" className="block text-sm font-semibold text-gray-700 mb-1">
-                Expiry Date (Optional)
+              <label className="block text-sm font-semibold text-gray-700 mb-1">
+                Expiry Date
               </label>
-              <input
-                id="expiryDate"
-                name="expiryDate"
-                type="date"
-                value={toDateInputValue(formData.expiryDate)}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    expiryDate: e.target.value || null,
-                  })
-                }
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Leave empty if the coupon does not expire.
-              </p>
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                <p className="text-sm text-gray-700">
+                  {formatCouponExpiryDisplay(formData.expiryDate)}
+                </p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Set automatically to 31 December {new Date().getFullYear()} when not specified.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -537,7 +503,7 @@ export default function EditCouponPage() {
 
           <div>
             <label htmlFor="description" className="block text-sm font-semibold text-gray-700 mb-1">
-              Description
+              Description (Optional)
             </label>
             <textarea
               id="description"
@@ -759,7 +725,7 @@ export default function EditCouponPage() {
             </button>
             <button
               type="button"
-              onClick={() => router.back()}
+              onClick={navigateBack}
               className="flex-1 bg-gray-200 text-gray-800 py-2 rounded-lg hover:bg-gray-300 transition font-semibold"
             >
               Cancel

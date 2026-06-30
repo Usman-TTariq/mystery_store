@@ -47,6 +47,8 @@ export async function GET() {
       categoryId: row.category_id || null,
       couponOrder: row.coupon_order || null,
       trackingLink: row.tracking_link || undefined,
+      websiteUrl: row.website_url || undefined,
+      country: row.country || undefined,
       createdAt: row.created_at || undefined,
     }));
 

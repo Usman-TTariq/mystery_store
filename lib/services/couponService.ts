@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/client'
 import { extractOriginalCloudinaryUrl } from '@/lib/utils/cloudinary'
+import { resolveCouponExpiryDate } from '@/lib/utils/couponExpiry'
 
 export interface Coupon {
   id?: string
@@ -8,7 +9,7 @@ export interface Coupon {
   storeIds?: string[]
   discount: number
   discountType: 'percentage' | 'fixed'
-  description: string
+  description?: string
   isActive: boolean
   maxUses: number
   currentUses: number
@@ -80,7 +81,7 @@ export async function createCoupon(coupon: Omit<Coupon, 'id'>, logoFile?: File) 
       status: coupon.isActive ? 'active' : 'inactive',
       max_uses: coupon.maxUses || 0,
       current_uses: coupon.currentUses || 0,
-      expiry_date: coupon.expiryDate,
+      expiry_date: resolveCouponExpiryDate(coupon.expiryDate),
       logo_url: logoUrl,
       url: coupon.url,
       coupon_type: coupon.couponType,
@@ -143,7 +144,7 @@ export async function getCoupons(): Promise<Coupon[]> {
       isActive: item.status === 'active',
       maxUses: item.max_uses || 0,
       currentUses: item.current_uses || 0,
-      expiryDate: item.expiry_date,
+      expiryDate: resolveCouponExpiryDate(item.expiry_date),
       logoUrl: item.logo_url,
       url: item.url,
       couponType: item.coupon_type,
@@ -188,7 +189,7 @@ export async function getActiveCoupons(): Promise<Coupon[]> {
       isActive: item.status === 'active',
       maxUses: item.max_uses || 0,
       currentUses: item.current_uses || 0,
-      expiryDate: item.expiry_date,
+      expiryDate: resolveCouponExpiryDate(item.expiry_date),
       logoUrl: item.logo_url,
       url: item.url,
       couponType: item.coupon_type,
@@ -233,7 +234,7 @@ export async function getCouponById(id: string): Promise<Coupon | null> {
       isActive: data.status === 'active',
       maxUses: data.max_uses || 0,
       currentUses: data.current_uses || 0,
-      expiryDate: data.expiry_date,
+      expiryDate: resolveCouponExpiryDate(data.expiry_date),
       logoUrl: data.logo_url,
       url: data.url,
       couponType: data.coupon_type,
@@ -346,7 +347,7 @@ export async function getCouponsByCategoryId(categoryId: string): Promise<Coupon
       isActive: item.status === 'active',
       maxUses: item.max_uses || 0,
       currentUses: item.current_uses || 0,
-      expiryDate: item.expiry_date,
+      expiryDate: resolveCouponExpiryDate(item.expiry_date),
       logoUrl: item.logo_url,
       url: item.url,
       couponType: item.coupon_type,
@@ -392,7 +393,7 @@ export async function getCouponsByStoreName(storeName: string): Promise<Coupon[]
       isActive: item.status === 'active',
       maxUses: item.max_uses || 0,
       currentUses: item.current_uses || 0,
-      expiryDate: item.expiry_date,
+      expiryDate: resolveCouponExpiryDate(item.expiry_date),
       logoUrl: item.logo_url,
       url: item.url,
       couponType: item.coupon_type,
@@ -438,7 +439,7 @@ export async function getCouponsByStoreId(storeId: string): Promise<Coupon[]> {
       isActive: item.status === 'active',
       maxUses: item.max_uses || 0,
       currentUses: item.current_uses || 0,
-      expiryDate: item.expiry_date,
+      expiryDate: resolveCouponExpiryDate(item.expiry_date),
       logoUrl: item.logo_url,
       url: item.url,
       couponType: item.coupon_type,
@@ -495,7 +496,7 @@ export async function applyCoupon(code: string) {
       isActive: data.status === 'active',
       maxUses: data.max_uses || 0,
       currentUses: data.current_uses || 0,
-      expiryDate: data.expiry_date,
+      expiryDate: resolveCouponExpiryDate(data.expiry_date),
       logoUrl: data.logo_url,
       url: data.url,
       couponType: data.coupon_type,
@@ -543,7 +544,7 @@ export async function createCouponFromUrl(coupon: Omit<Coupon, 'id'>, logoUrl?: 
       discount_type: coupon.discountType,
       description: coupon.description,
       status: coupon.isActive ? 'active' : 'inactive',
-      expiry_date: coupon.expiryDate,
+      expiry_date: resolveCouponExpiryDate(coupon.expiryDate),
       logo_url: finalLogoUrl,
       url: coupon.url,
       coupon_type: coupon.couponType,
@@ -628,7 +629,7 @@ export async function getPopularCoupons(): Promise<(Coupon | null)[]> {
             isActive: item.status === 'active',
             maxUses: item.max_uses || 0,
             currentUses: item.current_uses || 0,
-            expiryDate: item.expiry_date,
+            expiryDate: resolveCouponExpiryDate(item.expiry_date),
             logoUrl: item.logo_url,
             url: item.url,
             couponType: item.coupon_type,
@@ -697,7 +698,7 @@ export async function getLatestCoupons(): Promise<(Coupon | null)[]> {
       isActive: item.status === 'active',
       maxUses: item.max_uses || 0,
       currentUses: item.current_uses || 0,
-      expiryDate: item.expiry_date,
+      expiryDate: resolveCouponExpiryDate(item.expiry_date),
       logoUrl: item.logo_url,
       url: item.url,
       couponType: item.coupon_type,

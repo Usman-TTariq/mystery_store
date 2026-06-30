@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState, useRef } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   getCoupons,
   createCoupon,
@@ -13,10 +14,14 @@ import { getCategories, Category } from '@/lib/services/categoryService';
 import Link from 'next/link';
 import { extractOriginalCloudinaryUrl, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import { normalizeRedirectUrl } from '@/lib/utils/url';
+import { resolveCouponExpiryDate, formatCouponExpiryDisplay } from '@/lib/utils/couponExpiry';
 import { getStores, Store } from '@/lib/services/storeService';
 import { sortCouponsByRecentActivity } from '@/lib/utils/couponOrder';
 
 export default function CouponsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const urlSearchParams = useSearchParams();
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,10 +57,15 @@ export default function CouponsPage() {
   const [stores, setStores] = useState<Store[]>([]);
   const [selectedStoreIds, setSelectedStoreIds] = useState<string[]>([]);
   const [isStoreDropdownOpen, setIsStoreDropdownOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>(
+    () => urlSearchParams.get('search')?.trim() || ''
+  );
   const [storeSearchQuery, setStoreSearchQuery] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(() => {
+    const page = parseInt(urlSearchParams.get('page') || '1', 10);
+    return Number.isNaN(page) || page < 1 ? 1 : page;
+  });
   const pageSize = 22;
   const storeDropdownRef = useRef<HTMLDivElement>(null);
   // console.log("coupons: ", coupons);
@@ -493,18 +503,6 @@ export default function CouponsPage() {
     getDealText: '',
   });
 
-  const toDateInputValue = (date: string | null | undefined): string => {
-    if (!date) return '';
-    const match = String(date).match(/^(\d{4}-\d{2}-\d{2})/);
-    if (match) return match[1];
-    const parsed = new Date(date);
-    if (Number.isNaN(parsed.getTime())) return '';
-    const y = parsed.getFullYear();
-    const m = String(parsed.getMonth() + 1).padStart(2, '0');
-    const d = String(parsed.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
   const getStoreRedirectUrl = (store: Store): string => {
     const raw = store.trackingLink || store.websiteUrl || '';
     return normalizeRedirectUrl(raw) || '';
@@ -618,6 +616,9 @@ export default function CouponsPage() {
       discountType: 'percentage', // Always use percentage
       layoutPosition: layoutPositionToSave,
       latestLayoutPosition: latestLayoutPositionToSave,
+      getCodeText: null,
+      getDealText: null,
+      expiryDate: resolveCouponExpiryDate(formData.expiryDate),
     };
 
     // For deal type, don't include code field
@@ -908,10 +909,25 @@ export default function CouponsPage() {
     }
   };
 
-  // Reset to first page when search query changes
+  // Keep list filters in the URL so edit → back/save restores the same view
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery]);
+    const params = new URLSearchParams();
+    const trimmed = searchQuery.trim();
+    if (trimmed) params.set('search', trimmed);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    const qs = params.toString();
+    const nextUrl = qs ? `${pathname}?${qs}` : pathname;
+    router.replace(nextUrl, { scroll: false });
+  }, [searchQuery, currentPage, pathname, router]);
+
+  const buildEditCouponHref = (couponId: string) => {
+    const params = new URLSearchParams();
+    const trimmed = searchQuery.trim();
+    if (trimmed) params.set('search', trimmed);
+    if (currentPage > 1) params.set('page', String(currentPage));
+    const qs = params.toString();
+    return qs ? `/admin/coupons/${couponId}?${qs}` : `/admin/coupons/${couponId}`;
+  };
 
   const getCouponStoreDisplayName = (coupon: Coupon): string => {
     if (coupon.storeIds && coupon.storeIds.length > 0) {
@@ -1026,7 +1042,7 @@ export default function CouponsPage() {
                   </ul>
                 </div>
                 <p className="text-xs text-gray-500">
-                  All other columns (url, description, discount, expiryDate, etc.) are optional.
+                  All other columns (url, description, discount, etc.) are optional. Expiry date is auto-set to 31 Dec if omitted.
                 </p>
               </div>
 
@@ -1114,7 +1130,10 @@ export default function CouponsPage() {
                 type="text"
                 placeholder="Enter store name or coupon code..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <svg
@@ -1133,7 +1152,10 @@ export default function CouponsPage() {
             </div>
             {searchQuery && (
               <button
-                onClick={() => setSearchQuery('')}
+                onClick={() => {
+                  setSearchQuery('');
+                  setCurrentPage(1);
+                }}
                 className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium whitespace-nowrap"
               >
                 Clear
@@ -1373,54 +1395,16 @@ export default function CouponsPage() {
                 </label>
               </div>
               <p className="mt-1 text-xs text-gray-500">
-                Select whether this is a coupon code or a deal. Frontend will show "Get Code" for codes and "Get Deal" for deals.
+                Select whether this is a coupon code or a deal. The site button is set automatically.
               </p>
-            </div>
-
-            {/* Custom Button Text Fields */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {formData.couponType === 'code' && (
-                <div>
-                  <label htmlFor="getCodeText" className="block text-gray-700 text-sm font-semibold mb-2">
-                    Custom "Get Code" Button Text (Optional)
-                  </label>
-                  <input
-                    id="getCodeText"
-                    name="getCodeText"
-                    type="text"
-                    placeholder='e.g., "Obtenir le code", "Obtener código", "कोड प्राप्त करें"'
-                    value={formData.getCodeText || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, getCodeText: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Leave empty to use default "Get Code". Set custom text for any language.
-                  </p>
-                </div>
-              )}
-              {formData.couponType === 'deal' && (
-                <div>
-                  <label htmlFor="getDealText" className="block text-gray-700 text-sm font-semibold mb-2">
-                    Custom "Get Deal" Button Text (Optional)
-                  </label>
-                  <input
-                    id="getDealText"
-                    name="getDealText"
-                    type="text"
-                    placeholder="e.g., Obtenir l'offre, Obtener oferta, ऑफर प्राप्त करें"
-                    value={formData.getDealText || ''}
-                    onChange={(e) =>
-                      setFormData({ ...formData, getDealText: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    Leave empty to use default "Get Deal". Set custom text for any language.
-                  </p>
-                </div>
-              )}
+              <div className="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                <p className="text-sm text-gray-700">
+                  Site button:{' '}
+                  <span className="font-semibold">
+                    {formData.couponType === 'code' ? 'Get Code' : 'Get Deal'}
+                  </span>
+                </p>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1662,34 +1646,28 @@ export default function CouponsPage() {
                 />
               </div>
               <div>
-                <label htmlFor="expiryDate" className="block text-gray-700 text-sm font-semibold mb-2">
-                  Expiry Date (Optional)
+                <label className="block text-gray-700 text-sm font-semibold mb-2">
+                  Expiry Date
                 </label>
-                <input
-                  id="expiryDate"
-                  name="expiryDate"
-                  type="date"
-                  value={toDateInputValue(formData.expiryDate)}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      expiryDate: e.target.value || null,
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Leave empty if the coupon does not expire.
-                </p>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                  <p className="text-sm text-gray-700">
+                    {formatCouponExpiryDisplay(formData.expiryDate)}
+                  </p>
+                  <p className="mt-1 text-xs text-gray-500">
+                    Set automatically to 31 December {new Date().getFullYear()} — no manual entry needed.
+                  </p>
+                </div>
               </div>
             </div>
 
             <div>
-              <label htmlFor="description" className="sr-only">Description</label>
+              <label htmlFor="description" className="block text-gray-700 text-sm font-semibold mb-2">
+                Description (Optional)
+              </label>
               <textarea
                 id="description"
                 name="description"
-                placeholder="Description"
+                placeholder="Description (optional)"
                 value={formData.description || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
@@ -1937,7 +1915,10 @@ export default function CouponsPage() {
         <div className="bg-white rounded-lg border border-gray-200 p-12 text-center">
           <p className="text-gray-500">No coupons found matching "{searchQuery}"</p>
           <button
-            onClick={() => setSearchQuery('')}
+            onClick={() => {
+              setSearchQuery('');
+              setCurrentPage(1);
+            }}
             className="mt-4 text-blue-600 hover:text-blue-800 underline"
           >
             Clear search
@@ -2074,7 +2055,7 @@ export default function CouponsPage() {
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex flex-col sm:flex-row gap-1 sm:gap-2">
                         <Link
-                          href={`/admin/coupons/${coupon.id}`}
+                          href={buildEditCouponHref(coupon.id!)}
                           className="inline-block bg-blue-100 text-blue-700 px-2 sm:px-3 py-1 rounded text-xs sm:text-sm hover:bg-blue-200 text-center"
                         >
                           Edit

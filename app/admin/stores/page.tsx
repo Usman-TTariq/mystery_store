@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   getStores,
   createStore,
@@ -12,10 +13,14 @@ import {
 import { getCategories, Category } from '@/lib/services/categoryService';
 import { extractOriginalCloudinaryUrl, isCloudinaryUrl } from '@/lib/utils/cloudinary';
 import StoreCouponsPriorityModal from './StoreCouponsPriorityModal';
+import StoreLogo from '@/app/components/StoreLogo';
 import { createClient } from '@/lib/supabase/client';
 import { getCategoryEmoji } from '@/lib/utils/categoryIcon';
+import { inferCountryCode } from '@/lib/utils/storeCountry';
 
 export default function StoresPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [stores, setStores] = useState<Store[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -278,6 +283,8 @@ export default function StoresPage() {
           console.log(`Store: ${store_name}, Logo URL: ${logoUrl}`);
         }
 
+        const slugValue = idxSlug !== -1 ? (row[idxSlug] || null) : null;
+
         return {
           name: store_name,
           description,
@@ -285,12 +292,15 @@ export default function StoresPage() {
           website_url: idxStoreUrl !== -1 ? (row[idxStoreUrl] || null) : null,
           tracking_link: idxTrackingLink !== -1 ? (row[idxTrackingLink] || null) : null,
           category_text: idxCategory !== -1 ? (row[idxCategory] || null) : null,
-          country: idxCountry !== -1 ? (row[idxCountry] || 'US') : 'US',
+          country:
+            idxCountry !== -1 && row[idxCountry]?.trim()
+              ? row[idxCountry].trim().toUpperCase()
+              : inferCountryCode(slugValue, store_name) || 'US',
           status: idxStatus !== -1 ? (normalizeBoolean(row[idxStatus]) ? 'active' : 'inactive') : 'active',
           featured: idxFeatured !== -1 ? normalizeBoolean(row[idxFeatured]) : false,
           seo_title: idxSeoTitle !== -1 ? (row[idxSeoTitle] || null) : null,
           seo_description: idxSeoDescription !== -1 ? (row[idxSeoDescription] || null) : null,
-          slug: idxSlug !== -1 ? (row[idxSlug] || null) : null,
+          slug: slugValue,
           sub_store_name: idxSubStoreName !== -1 ? (row[idxSubStoreName] || null) : null,
         };
       })
@@ -510,6 +520,20 @@ export default function StoresPage() {
     };
     load();
   }, []);
+
+  useEffect(() => {
+    const openCouponsId = searchParams.get('openCoupons')?.trim();
+    if (!openCouponsId || loading || supabaseStores.length === 0) return;
+
+    const store =
+      supabaseStores.find((s) => s.id === openCouponsId) ||
+      supabaseStores.find((s) => String(s.storeId) === openCouponsId);
+
+    if (!store) return;
+
+    setPriorityStore(store);
+    router.replace('/admin/stores');
+  }, [searchParams, supabaseStores, loading, router]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1534,51 +1558,16 @@ export default function StoresPage() {
                 {filteredStores.map((store) => (
                   <tr key={store.id} className="border-b hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      {store.logoUrl ? (
-                        <div className="relative">
-                          <img
-                            src={store.logoUrl}
-                            alt={store.name}
-                            title={`Logo: ${store.logoUrl}`}
-                            className="h-12 w-12 object-contain bg-white rounded p-1"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              // Try favicon from slug
-                              if (store.slug && !target.src.includes('google.com/s2/favicons')) {
-                                target.src = `https://www.google.com/s2/favicons?domain=${store.slug}.com&sz=128`;
-                              } else {
-                                // Use placeholder with first letter
-                                target.style.display = 'none';
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  parent.innerHTML = `<div class="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center text-white text-lg font-bold shadow-md">${store.name?.charAt(0).toUpperCase() || '?'}</div>`;
-                                }
-                              }
-                            }}
-                          />
-                        </div>
-                      ) : store.slug ? (
-                        <div className="relative">
-                          <img
-                            src={`https://www.google.com/s2/favicons?domain=${store.slug.includes('.') ? store.slug : store.slug.match(/-([a-z]{2})$/) ? store.slug.replace(/-([a-z]{2})$/, '.$1') : `${store.slug}.com`}&sz=128`}
-                            alt={store.name}
-                            title={`Favicon from: ${store.slug}.com`}
-                            className="h-12 w-12 object-contain bg-white rounded p-1"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.innerHTML = `<div class="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center text-white text-lg font-bold shadow-md">${store.name?.charAt(0).toUpperCase() || '?'}</div>`;
-                              }
-                            }}
-                          />
-                        </div>
-                      ) : (
-                        <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center text-white text-lg font-bold shadow-md">
-                          {store.name?.charAt(0).toUpperCase() || '?'}
-                        </div>
-                      )}
+                      <StoreLogo
+                        name={store.name}
+                        logoUrl={store.logoUrl}
+                        websiteUrl={store.websiteUrl}
+                        trackingLink={store.trackingLink}
+                        slug={store.slug}
+                        className="h-12 w-12"
+                        imgClassName="h-12 w-12 object-contain bg-white rounded p-1"
+                        fallbackClassName="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded flex items-center justify-center text-white text-lg font-bold shadow-md"
+                      />
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-700 font-mono">
                       {store.storeId || '-'}

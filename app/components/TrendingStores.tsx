@@ -5,6 +5,7 @@ import Link from "next/link";
 import { MoveRight, Star, Heart, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import { getStores, Store } from "@/lib/services/storeService";
+import StoreLogo from "./StoreLogo";
 
 export default function TrendingStores() {
   const [stores, setStores] = useState<Store[]>([]);
@@ -40,35 +41,6 @@ export default function TrendingStores() {
 
     return () => clearInterval(typingInterval);
   }, []);
-
-  // Helper function to extract domain from URL (including tracking URLs)
-  const extractDomain = (url: string): string | null => {
-    if (!url) return null;
-    try {
-      // Handle tracking URLs that might redirect
-      const urlObj = new URL(url);
-      return urlObj.hostname.replace('www.', '');
-    } catch {
-      return null;
-    }
-  };
-
-  // Get favicon URL with fallback to tracking link
-  const getFaviconUrl = (store: Store): string | null => {
-    // Try website URL first
-    if (store.websiteUrl) {
-      const domain = extractDomain(store.websiteUrl);
-      if (domain) return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-    }
-
-    // Fallback to tracking link
-    if (store.trackingLink) {
-      const domain = extractDomain(store.trackingLink);
-      if (domain) return `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
-    }
-
-    return null;
-  };
 
   if (loading) {
     return (
@@ -154,27 +126,17 @@ export default function TrendingStores() {
                 <Heart className="w-4 h-4" />
               </button>
 
-              {/* Store Favicon */}
+              {/* Store Logo */}
               <div className="w-full h-40 bg-gray-50 rounded-lg mb-4 flex items-center justify-center p-4 overflow-hidden mt-6 relative">
-                {getFaviconUrl(store) ? (
-                  <img
-                    src={getFaviconUrl(store)!}
-                    alt={store.name}
-                    className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-500"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const parent = target.parentElement;
-                      if (parent) {
-                        parent.innerHTML = `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] flex items-center justify-center"><span class="text-2xl font-bold text-white">${store.name.charAt(0).toUpperCase()}</span></div>`;
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] flex items-center justify-center">
-                    <span className="text-2xl font-bold text-white">{store.name.charAt(0).toUpperCase()}</span>
-                  </div>
-                )}
+                <StoreLogo
+                  name={store.name}
+                  logoUrl={store.logoUrl}
+                  websiteUrl={store.websiteUrl}
+                  trackingLink={store.trackingLink}
+                  slug={store.slug}
+                  className="w-20 h-20"
+                  imgClassName="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-500"
+                />
               </div>
 
               {/* Store Name */}

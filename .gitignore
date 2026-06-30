@@ -48,3 +48,9 @@ firebase-service-account.json
 *.tsbuildinfo
 next-env.d.ts
 config.bat
+
+
+#change fles
+._tsc_filtered.txt
+._tsc1.txt
+._tsc2.txt

@@ -1,4 +1,5 @@
 import { supabaseServer } from '@/lib/supabase/server';
+import { resolveCouponExpiryDate } from '@/lib/utils/couponExpiry';
 
 interface CouponPayload {
   store_id?: string | null;
@@ -80,7 +81,9 @@ function mapPayloadToDb(body: CouponPayload) {
   if (body.description !== undefined) updates.description = body.description;
   if (body.discount !== undefined) updates.discount_value = body.discount;
   if (body.discountType !== undefined) updates.discount_type = body.discountType;
-  if (body.expiryDate !== undefined) updates.expiry_date = body.expiryDate;
+  if (body.expiryDate !== undefined) {
+    updates.expiry_date = resolveCouponExpiryDate(body.expiryDate);
+  }
   if (body.getCodeText !== undefined) updates.get_code_text = body.getCodeText || null;
   if (body.getDealText !== undefined) updates.get_deal_text = body.getDealText || null;
   if (body.isActive !== undefined) updates.status = body.isActive ? 'active' : 'inactive';

@@ -1,4 +1,5 @@
 import { supabaseServer } from '@/lib/supabase/server';
+import { resolveCouponExpiryDate } from '@/lib/utils/couponExpiry';
 
 function slugify(name: string): string {
   return name
@@ -185,11 +186,11 @@ function mapCouponRow(
     store_id: storeUuid,
     discount_value: row.discount ?? 0,
     discount_type: row.discountType || 'percentage',
-    description: row.description?.trim() || title,
+    description: row.description?.trim() || '',
     status: row.isActive !== false ? 'active' : 'inactive',
     max_uses: row.maxUses ?? 0,
     current_uses: row.currentUses ?? 0,
-    expiry_date: row.expiryDate || null,
+    expiry_date: resolveCouponExpiryDate(row.expiryDate),
     logo_url: row.logoUrl || null,
     url: row.url || null,
     coupon_type: row.couponType || 'code',

@@ -178,6 +178,7 @@ export default function StorePageClient({ params }: { params: { id: string } }) 
   };
 
   const getCouponTitle = (coupon: Coupon): string => {
+    if (coupon.storeName?.trim()) return coupon.storeName.trim();
     if (coupon.description?.trim()) return coupon.description.trim();
     if (coupon.discount) {
       return coupon.discountType === 'percentage'

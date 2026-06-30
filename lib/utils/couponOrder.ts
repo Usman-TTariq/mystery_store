@@ -1,3 +1,5 @@
+import { resolveCouponExpiryDate } from '@/lib/utils/couponExpiry';
+
 export interface OrderedCoupon {
   id?: string;
 }
@@ -43,7 +45,7 @@ export function mapDbCoupon(row: Record<string, unknown>) {
     storeIds: (row.store_ids as string[]) || [],
     description: (row.description as string) || '',
     isActive: row.status === 'active',
-    expiryDate: (row.expiry_date as string) || null,
+    expiryDate: resolveCouponExpiryDate(row.expiry_date as string | null),
     couponType: ((row.coupon_type as string) || 'deal') as 'code' | 'deal',
     createdAt: row.created_at as string | undefined,
   };

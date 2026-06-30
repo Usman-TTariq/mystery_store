@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { getLatestCoupons, Coupon } from '@/lib/services/couponService';
+import { getStores, Store } from '@/lib/services/storeService';
 import { addToFavorites, removeFromFavorites, isFavorite } from '@/lib/services/favoritesService';
 import { addNotification } from '@/lib/services/notificationsService';
 import Link from 'next/link';
 import CouponPopup from './CouponPopup';
+import StoreLogo from './StoreLogo';
 
 export default function PopularCoupons() {
   const [coupons, setCoupons] = useState<(Coupon | null)[]>(Array(8).fill(null));
@@ -14,6 +16,7 @@ export default function PopularCoupons() {
   const [updateTrigger, setUpdateTrigger] = useState(0);
   const [showPopup, setShowPopup] = useState(false);
   const [selectedCoupon, setSelectedCoupon] = useState<Coupon | null>(null);
+  const [storesById, setStoresById] = useState<Map<string, Store>>(new Map());
 
   useEffect(() => {
     const fetchCoupons = async () => {
@@ -32,6 +35,36 @@ export default function PopularCoupons() {
     };
     fetchCoupons();
   }, []);
+
+  useEffect(() => {
+    getStores()
+      .then((stores) => {
+        setStoresById(new Map(stores.filter((s) => s.id).map((s) => [s.id!, s])));
+      })
+      .catch((error) => console.error('Failed to load stores for coupon logos:', error));
+  }, []);
+
+  const getLinkedStore = (coupon: Coupon): Store | undefined => {
+    const storeId = coupon.storeIds?.[0];
+    return storeId ? storesById.get(storeId) : undefined;
+  };
+
+  const renderCouponLogo = (coupon: Coupon, className = 'w-20 h-20', imgClassName = 'w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-500') => {
+    const store = getLinkedStore(coupon);
+    const label = store?.name || coupon.storeName || coupon.code || 'Coupon';
+
+    return (
+      <StoreLogo
+        name={label}
+        logoUrl={coupon.logoUrl || store?.logoUrl}
+        websiteUrl={store?.websiteUrl}
+        trackingLink={store?.trackingLink}
+        slug={store?.slug}
+        className={className}
+        imgClassName={imgClassName}
+      />
+    );
+  };
 
   // Listen for favorites updates
   useEffect(() => {
@@ -308,29 +341,9 @@ export default function PopularCoupons() {
                     >
                       {/* Logo and Brand Name */}
                       <div className="flex items-center gap-3 mb-3">
-                        {coupon.logoUrl ? (
-                          <div className="w-12 h-12 rounded flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
-                            <img
-                              src={coupon.logoUrl}
-                              alt={coupon.storeName || coupon.code}
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                const parent = target.parentElement;
-                                if (parent) {
-                                  const initial = coupon.code?.charAt(0) || coupon.storeName?.charAt(0) || '?';
-                                  parent.innerHTML = `<span class="text-xs font-semibold text-gray-500">${initial}</span>`;
-                                }
-                              }}
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-12 h-12 rounded bg-gray-200 flex items-center justify-center flex-shrink-0">
-                            <span className="text-xs font-semibold text-gray-500">
-                              {coupon.code?.charAt(0) || coupon.storeName?.charAt(0) || '?'}
-                            </span>
-                          </div>
-                        )}
+                        <div className="w-12 h-12 rounded flex-shrink-0">
+                          {renderCouponLogo(coupon, 'w-12 h-12', 'w-full h-full object-contain')}
+                        </div>
                         <h3 className="text-sm font-bold text-gray-900 flex-1 line-clamp-2">
                           {coupon.storeName || coupon.code}
                         </h3>
@@ -447,28 +460,7 @@ export default function PopularCoupons() {
 
                     {/* Coupon Logo */}
                     <div className="w-full h-40 bg-gray-50 rounded-lg mb-4 flex items-center justify-center p-4 overflow-hidden mt-6 relative">
-                      {coupon.logoUrl ? (
-                        <img
-                          src={coupon.logoUrl}
-                          alt={coupon.storeName || coupon.code}
-                          className="w-20 h-20 object-contain group-hover:scale-110 transition-transform duration-500"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              const initial = (coupon.storeName || coupon.code)?.charAt(0)?.toUpperCase() || '?';
-                              parent.innerHTML = `<div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] flex items-center justify-center"><span class="text-2xl font-bold text-white">${initial}</span></div>`;
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#0B453C] to-[#0f5c4e] flex items-center justify-center">
-                          <span className="text-2xl font-bold text-white">
-                            {(coupon.storeName || coupon.code)?.charAt(0)?.toUpperCase() || '?'}
-                          </span>
-                        </div>
-                      )}
+                      {renderCouponLogo(coupon)}
                     </div>
 
                     {/* Store Name */}

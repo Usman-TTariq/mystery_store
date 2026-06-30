@@ -187,6 +187,7 @@ export default function EditStorePage() {
           isTrending: updates.isTrending,
           tracking_link: updates.trackingLink,
           country: updates.country,
+          categoryId: updates.categoryId ?? null,
         };
 
         const res = await fetch(`/api/stores/supabase/by-id/${encodeURIComponent(storeId)}`, {
