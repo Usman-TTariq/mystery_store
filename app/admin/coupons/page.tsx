@@ -268,6 +268,26 @@ export default function CouponsPage() {
     );
     const indexOf = (name: string) => header.indexOf(name.toLowerCase());
 
+    const findTrackingLinkColumn = (): number => {
+      const names = [
+        'url',
+        'tracking link',
+        'traking link',
+        'tracking_link',
+        'traking_link',
+        'trackinglink',
+        'trakinglink',
+        'coupon url',
+        'affiliate link',
+        'affiliate url',
+      ];
+      for (const name of names) {
+        const idx = indexOf(name);
+        if (idx !== -1) return idx;
+      }
+      return -1;
+    };
+
     // Support both old CSV format and new Excel format
     const idxStoreName = indexOf('store name');
     const idxTitle = indexOf('title');
@@ -289,7 +309,7 @@ export default function CouponsPage() {
     const idxLogoUrl = indexOf('logourl');
     const idxMaxUses = indexOf('maxuses');
     const idxStoreId = indexOf('store_id');
-    const idxUrl = indexOf('url') !== -1 ? indexOf('url') : (indexOf('tracking link') !== -1 ? indexOf('tracking link') : indexOf('coupon url'));
+    const idxUrl = findTrackingLinkColumn();
 
     const missingRequired: string[] = [];
     if (idxStoreName === -1) missingRequired.push('Store Name');
@@ -314,6 +334,17 @@ export default function CouponsPage() {
 
     const validationErrors: string[] = [];
 
+    const storeLinkByName = new Map<string, string>();
+    if (idxUrl !== -1) {
+      for (const row of dataRows) {
+        const name = row[idxStoreName]?.toString().trim();
+        const link = row[idxUrl]?.toString().trim();
+        if (name && link) {
+          storeLinkByName.set(name.toLowerCase(), link);
+        }
+      }
+    }
+
     const supabaseRows = dataRows
       .map((row, index) => {
         const rowNum = index + 2;
@@ -323,7 +354,11 @@ export default function CouponsPage() {
         const couponTypeRaw = row[idxCouponType]?.toString().trim().toLowerCase() || '';
         const couponType = couponTypeRaw === 'deal' ? 'deal' : couponTypeRaw === 'code' ? 'code' : '';
         const code = row[idxCode]?.toString().trim() || '';
-        const url = idxUrl !== -1 ? row[idxUrl]?.toString().trim() || null : null;
+        const rowLink = idxUrl !== -1 ? row[idxUrl]?.toString().trim() || '' : '';
+        const url =
+          rowLink ||
+          (storeName ? storeLinkByName.get(storeName.toLowerCase()) : '') ||
+          null;
 
         if (!storeName) {
           validationErrors.push(`Row ${rowNum}: Store Name is required`);
@@ -1042,9 +1077,8 @@ export default function CouponsPage() {
                   </ul>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Optional columns: store_id, url (affiliate/tracking link — also saved on auto-created stores), description, discount, discountType, expiryDate, maxUses, isActive, isLatest, isPopular.
-                  Expiry auto-set to 31 Dec if empty. Get Code / Get Deal buttons are automatic — do not add getCodeText or getDealText columns.
-                  Template file: <code className="text-[11px]">data/coupons-bulk-upload-template.csv</code>
+                  Optional: Traking link / Tracking link / url (saved on coupon + auto-created store), description, discount, expiryDate, etc.
+                  Expiry auto-set to 31 Dec if empty. Get Code / Get Deal are automatic.
                 </p>
               </div>
 
