@@ -271,10 +271,10 @@ export default function StoresPage() {
         // Skip empty rows
         if (!store_name.trim()) return null;
 
-        // Generate description from store name if not provided
-        const description = idxDescription !== -1 && row[idxDescription]
-          ? row[idxDescription]
-          : `Get the best deals and coupons from ${store_name}`;
+        const description =
+          idxDescription !== -1 && row[idxDescription]?.trim()
+            ? row[idxDescription].trim()
+            : '';
 
         const logoUrl = idxLogoUrl !== -1 ? (row[idxLogoUrl] || null) : null;
 
@@ -1332,19 +1332,18 @@ export default function StoresPage() {
 
             <div>
               <label htmlFor="description" className="block text-gray-700 text-sm font-semibold mb-2">
-                Description
+                Description (Optional)
               </label>
               <textarea
                 id="description"
                 name="description"
-                placeholder="Store Description"
+                placeholder="Store Description (optional)"
                 value={formData.description || ''}
                 onChange={(e) =>
                   setFormData({ ...formData, description: e.target.value })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 rows={3}
-                required
               />
             </div>
 

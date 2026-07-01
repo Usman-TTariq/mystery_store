@@ -36,6 +36,7 @@ async function autoCreateStore(
     .insert({
       store_name: storeName,
       slug: uniqueSlug,
+      description: '',
       website_url: trimmedLink,
       tracking_link: trimmedLink,
       store_logo_url: logoUrl?.trim() || null,

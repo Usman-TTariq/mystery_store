@@ -2,7 +2,7 @@ import { supabaseServer } from '@/lib/supabase/server';
 
 interface IncomingStoreRow {
   name: string;
-  description: string;
+  description?: string | null;
   logo_url?: string | null;
   website_url?: string | null;
   tracking_link?: string | null;
@@ -19,7 +19,7 @@ interface IncomingStoreRow {
 function mapStoreRow(row: IncomingStoreRow) {
   return {
     store_name: row.name,
-    description: row.description,
+    description: row.description?.trim() || '',
     store_logo_url: row.logo_url ?? null,
     website_url: row.website_url ?? null,
     tracking_link: row.tracking_link ?? null,
