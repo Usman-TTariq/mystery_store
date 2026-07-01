@@ -350,7 +350,9 @@ export default function CouponsPage() {
         const rowNum = index + 2;
         const csvStoreId = idxStoreId !== -1 ? parseInt(row[idxStoreId] || '0', 10) || 0 : 0;
         const storeName = row[idxStoreName]?.toString().trim() || '';
-        const title = row[idxTitle]?.toString().trim() || '';
+        const title = idxTitle !== -1 ? row[idxTitle]?.toString().trim() || '' : '';
+        const description =
+          idxDescription !== -1 ? row[idxDescription]?.toString().trim() || '' : '';
         const couponTypeRaw = row[idxCouponType]?.toString().trim().toLowerCase() || '';
         const couponType = couponTypeRaw === 'deal' ? 'deal' : couponTypeRaw === 'code' ? 'code' : '';
         const code = row[idxCode]?.toString().trim() || '';
@@ -378,10 +380,6 @@ export default function CouponsPage() {
         }
 
         const resolved = resolveStoreForUpload(storeName, csvStoreId, url, storesList);
-        const description =
-          idxDescription !== -1 && row[idxDescription]
-            ? row[idxDescription]
-            : title;
 
         return {
           storeUuid: resolved?.uuid,
@@ -1073,11 +1071,11 @@ export default function CouponsPage() {
                     <li><span className="font-semibold">Store Name</span> — store name (auto-created if missing)</li>
                     <li><span className="font-semibold">couponType</span> — <code className="text-[11px]">code</code> or <code className="text-[11px]">deal</code></li>
                     <li><span className="font-semibold">code</span> — required when couponType is <code className="text-[11px]">code</code>; leave empty for deals</li>
-                    <li><span className="font-semibold">title</span> — offer title shown on the coupon card</li>
+                    <li><span className="font-semibold">title</span> — offer text shown on the coupon card (e.g. 10% off first order)</li>
                   </ul>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Optional: Traking link / Tracking link / url (saved on coupon + auto-created store), description, discount, expiryDate, etc.
+                  Optional: Traking link / Tracking link / url, description, discount, expiryDate, etc.
                   Expiry auto-set to 31 Dec if empty. Get Code / Get Deal are automatic.
                 </p>
               </div>

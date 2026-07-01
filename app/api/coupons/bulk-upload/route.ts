@@ -181,13 +181,13 @@ function mapCouponRow(
   resolvedStoreName: string
 ) {
   const code = row.code?.trim() || '';
-  const storeName = row.storeName?.trim() || resolvedStoreName;
-  const title = row.title?.trim() || `${storeName} - ${code || 'Coupon'}`;
+  const brandStoreName = row.storeName?.trim() || resolvedStoreName;
+  const cardTitle = row.title?.trim() || `${brandStoreName} - ${code || 'Coupon'}`;
 
   return {
     code,
-    title,
-    store_name: storeName,
+    title: cardTitle,
+    store_name: cardTitle,
     store_ids: [storeUuid],
     store_id: storeUuid,
     discount_value: row.discount ?? 0,
@@ -244,10 +244,13 @@ export async function POST(req: Request) {
     );
     const autoCreatedInBatch = new Map<string, { uuid: string; storeName: string }>();
     const mappedRows: ReturnType<typeof mapCouponRow>[] = [];
+    /** CSV row order per store — indices into mappedRows */
+    const storeRowIndices = new Map<string, number[]>();
     const errors: string[] = [];
     const storeNames: string[] = [];
     let skipped = 0;
     let storesCreated = 0;
+    const batchBaseMs = Date.now();
 
     for (let index = 0; index < rows.length; index++) {
       const row = rows[index];
@@ -346,7 +349,17 @@ export async function POST(req: Request) {
         continue;
       }
 
-      mappedRows.push(mapCouponRow(row, resolved.uuid, resolved.storeName));
+      const mappedIndex = mappedRows.length;
+      const rowTimestamp = new Date(batchBaseMs + mappedIndex).toISOString();
+      mappedRows.push({
+        ...mapCouponRow(row, resolved.uuid, resolved.storeName),
+        created_at: rowTimestamp,
+        updated_at: rowTimestamp,
+      });
+
+      const storeIndices = storeRowIndices.get(resolved.uuid) ?? [];
+      storeIndices.push(mappedIndex);
+      storeRowIndices.set(resolved.uuid, storeIndices);
     }
 
     if (!mappedRows.length) {
@@ -365,6 +378,8 @@ export async function POST(req: Request) {
       );
     }
 
+    const batchEndMs = batchBaseMs + mappedRows.length;
+
     const { error: insertError, count } = await supabase
       .from('coupons')
       .insert(mappedRows, { count: 'exact' });
@@ -378,6 +393,62 @@ export async function POST(req: Request) {
     }
 
     const uploaded = count ?? mappedRows.length;
+
+    if (mappedRows.length && storeRowIndices.size) {
+      const affectedStoreIds = [...storeRowIndices.keys()];
+      const batchStartIso = new Date(batchBaseMs).toISOString();
+      const batchEndIso = new Date(batchEndMs).toISOString();
+
+      const { data: storeRows, error: storeOrderError } = await supabase
+        .from('stores')
+        .select('id, coupon_order')
+        .in('id', affectedStoreIds);
+
+      if (storeOrderError) {
+        console.error('Failed to load store coupon_order for bulk upload:', storeOrderError);
+      } else {
+        const { data: newCoupons, error: newCouponsError } = await supabase
+          .from('coupons')
+          .select('id, store_id, created_at')
+          .in('store_id', affectedStoreIds)
+          .gte('created_at', batchStartIso)
+          .lte('created_at', batchEndIso)
+          .order('created_at', { ascending: true });
+
+        if (newCouponsError) {
+          console.error('Failed to load uploaded coupons for order update:', newCouponsError);
+        } else {
+          const newCouponsByStore = new Map<string, string[]>();
+
+          for (const coupon of newCoupons || []) {
+            const storeId = String(coupon.store_id);
+            const ids = newCouponsByStore.get(storeId) ?? [];
+            ids.push(String(coupon.id));
+            newCouponsByStore.set(storeId, ids);
+          }
+
+          for (const storeId of affectedStoreIds) {
+            const newCouponIds = newCouponsByStore.get(storeId) ?? [];
+            if (!newCouponIds.length) continue;
+
+            const existingStore = storeRows?.find((s) => String(s.id) === storeId);
+            const previousOrder = ((existingStore?.coupon_order as string[] | null) || []).map(String);
+            const newIdSet = new Set(newCouponIds);
+            const trailingIds = previousOrder.filter((id) => !newIdSet.has(id));
+            const couponOrder = [...newCouponIds, ...trailingIds];
+
+            const { error: orderUpdateError } = await supabase
+              .from('stores')
+              .update({ coupon_order: couponOrder, updated_at: new Date().toISOString() })
+              .eq('id', storeId);
+
+            if (orderUpdateError) {
+              console.error(`Failed to update coupon_order for store ${storeId}:`, orderUpdateError);
+            }
+          }
+        }
+      }
+    }
 
     return new Response(
       JSON.stringify({
